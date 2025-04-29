@@ -1,2 +1,5 @@
 .venv
 /train
+/datasets
+/__pycache__
+/models/__pycache__

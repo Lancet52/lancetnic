@@ -1,5 +1,8 @@
 .venv
+.venvLAPTOP
 /train
 /datasets
 /__pycache__
 /models/__pycache__
+/engine/__pycache__
+/runs

@@ -32,7 +32,7 @@
 
 ## 📄 Документация
 ### Быстрый старт
-```
+```Python
 from models.lancet_binary import LancetBC
 from engine.trainer import Binary
 
@@ -43,3 +43,4 @@ model.train(model_name=LancetBC,
             num_epochs=50
             )
 ```
+

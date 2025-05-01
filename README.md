@@ -33,8 +33,8 @@
 ## 📄 Документация
 ### Быстрый старт
 ```Python
-from models.lancet_binary import LancetBC
-from engine.trainer import Binary
+from lancetnic.models import LancetBC
+from lancetnic import Binary
 
 model = Binary()
 model.train(model_name=LancetBC,
@@ -42,5 +42,6 @@ model.train(model_name=LancetBC,
             val_path="datasets/spam_val.csv",
             num_epochs=50
             )
+            
 ```
 

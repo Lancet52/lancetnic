@@ -9,9 +9,20 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-from models.lancet_binary import BinaryDataset
-from engine.folder_runs import create_train_folder
 
+
+#Датасет для бинарной классификиции
+class BinaryDataset(Dataset):
+    def __init__(self, X, y):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.long)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+    
 class Binary:
     def __init__(self, text_column='description', label_column='category'):
         self.text_column = text_column

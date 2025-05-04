@@ -196,7 +196,7 @@ class Binary:
             if val_loss_epoch < self.best_val_loss:
                 self.best_val_loss = val_loss_epoch
                 torch.save({
-                    'model_state_dict': self.model.state_dict(),
+                    'model': self.model,
                     'input_size': self.input_size,
                     'hidden_size': hidden_size,
                     'num_layers': num_layers,
@@ -210,7 +210,7 @@ class Binary:
 
             # Сохраняем последнюю модель после каждой эпохи
             torch.save({
-                'model_state_dict': self.model.state_dict(),
+                'model': self.model,
                 'input_size': self.input_size,
                 'hidden_size': hidden_size,
                 'num_layers': num_layers,

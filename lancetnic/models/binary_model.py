@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset
+
 
 #Структура модели бинарной классификации (Binary Classifier)
 class LancetBC(nn.Module):
@@ -19,16 +19,4 @@ class LancetBC(nn.Module):
         out = self.dropout(out)
         out = out[:, -1, :]
         out = self.fc(out)
-        return out
-    
-#Датасет для бинарной классификиции
-class BinaryDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = torch.tensor(X, dtype=torch.float32)
-        self.y = torch.tensor(y, dtype=torch.long)
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+        return out   

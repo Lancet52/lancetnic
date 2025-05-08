@@ -1,6 +1,6 @@
 # LANCETNIC 1.0.2
 
-[![PyPI Package Version](https://img.shields.io/pypi/v/requests.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
+[![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 
 The LANCETNIC library is a tool for working with text data: learning, analysis, and inference.
 

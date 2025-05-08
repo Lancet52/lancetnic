@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-#Датасет для бинарной классификиции
+# Датасет для бинарной классификиции
 class BinaryDataset(Dataset):
     def __init__(self, X, y):
         self.X = torch.tensor(X, dtype=torch.float32)
@@ -133,7 +133,7 @@ class Binary:
                         }
         
         for epoch in range(self.num_epochs):
-            # Training
+            # Обучение 
             self.model.train()
             train_loss, train_correct, train_total = 0.0, 0, 0
 
@@ -153,7 +153,7 @@ class Binary:
                 train_total += labels.size(0)
                 train_correct += (predicted == labels).sum().item()
 
-            # Validation
+            # Валидация
             self.model.eval()
             val_loss, val_correct, val_total = 0.0, 0, 0
             all_preds, all_labels = [], []
@@ -192,7 +192,7 @@ class Binary:
             self.metrics['all_preds'].append(all_preds)
             self.metrics['all_labels'].append(all_labels)
 
-            # Сохраняем лучшую модель
+            # Сохранение лучшей модели
             if val_loss_epoch < self.best_val_loss:
                 self.best_val_loss = val_loss_epoch
                 torch.save({
@@ -208,7 +208,7 @@ class Binary:
                     'val_acc': val_acc_epoch
                 }, f"{self.new_folder_path}/best_model.pth")
 
-            # Сохраняем последнюю модель после каждой эпохи
+            # Сохранение последней модели (после каждой эпохи)
             torch.save({
                 'model': self.model,
                 'input_size': self.input_size,
@@ -222,7 +222,7 @@ class Binary:
                 'val_acc': val_acc_epoch
             }, f"{self.new_folder_path}/last_model.pth")
 
-            # Запись в CSV
+            # Запись результатов обучения в CSV
             csv_data = {
                 "epoch": epoch + 1,
                 "train_loss": f"{train_loss_epoch:.4f}",
@@ -260,7 +260,7 @@ class Binary:
         plt.savefig(f"{self.new_folder_path}/f1_score_plot.png")
         plt.close()
 
-        # Дополнительная визуализация других метрик
+        # Визуализация других метрик
         plt.figure(figsize=(15, 5))
 
         plt.subplot(1, 3, 1)
@@ -294,7 +294,7 @@ class Binary:
         plt.close()
 
         # Confusion matrix для последней эпохи
-        last_labels = self.metrics['all_labels'][-1]  # Берем последние сохраненные
+        last_labels = self.metrics['all_labels'][-1]
         last_preds = self.metrics['all_preds'][-1]
         conf_matrix = confusion_matrix(last_labels, last_preds)
         plt.figure(figsize=(10, 8))

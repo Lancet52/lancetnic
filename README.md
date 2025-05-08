@@ -1,73 +1,36 @@
-# LANCETNIC 
-[![PyPi Package Version](https://img.shields.io/pypi/v/aiogram.svg?style=flat-square)](https://github.com/Lancet52/)
-Библиотека LANCETNIC представляет собой инструмент для работы с текстовыми данными: обучение, анализ, инференс.
+# LANCETNIC 1.0.2
 
-Решаемые задачи:
-- Бинарная классификация (спам/не спам; болен пациент/не болен; одобрен кредит/отказ и др.)
+[![PyPI Package Version](https://img.shields.io/pypi/v/requests.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
+
+The LANCETNIC library is a tool for working with text data: learning, analysis, and inference.
+
+Tasks to be solved:
+- Binary classification (spam/not spam; patient is sick/not sick; loan approved/refusal, etc.)
 
 
-## 🔑 Версии библиотек. Требования:
+## 🚀 Installing:
+Install with CUDA
 
-- Python==3.10.9
-- torch==2.5.1+cu124
-- torchaudio==2.5.1+cu124
-- torchvision==0.20.1+cu124
-- scikit-learn==1.6.1
-- pandas==2.2.3
-- matplotlib==3.10.1
-- seaborn==0.13.2
+To work with the GPU, it is recommended to install PyTorch with CUDA support (OPTIONAL):
 
-## Структура проекта
+```bash
+pip install torch==2.5.1+cu124 torchaudio==2.5.1+cu124 torchvision==0.20.1+cu124 --index-url https://download.pytorch.org/whl/cu124
 ```
-lancetnic/
-├── lancetnic/
-│   ├── __init__.py
-│   ├── engine/
-│   │   ├── trainer.py                  # Универсальный Trainer
-│   │   ├── validator.py                # Валидация моделей
-│   │   └── predictor.py                # Предсказания
-│   │
-│   ├── tasks/                          # Поддержка разных задач
-│   │   ├── binary_classification.py
-│   │   ├── multi_classification.py
-│   │   └── __init__.py          
-│   │
-│   ├── models/                         # Скрытые архитектуры
-│   │   ├── binary_model.py             # Для бинарной классификации
-│   │   ├── multi_model.py              # Для многоклассовой
-│   │   └── __init__.py                 # Инкапсуляция загрузки
-│   │
-│   ├── data/                           # Обработка данных
-│   │   ├── tokenizer.py                # Токенизация текста
-│   │   └── dataset.py                  # Dataset для PyTorch
-│   │
-│   └── utils/
-│       ├── logger.py
-│       └── metrics.py                   # Accuracy, F1, ROC-AUC...
-│
-├── configs/                             # Конфиги для задач
-│   ├── binary.yaml
-│   └── multi_class.yaml
-│
-├── examples/
-│   ├── train_binary.py
-│   └── train_multi.py
-└── ...
+
+Then install lancetnic:
+
+```bash
+pip install lancetnic
 ```
-## 🚀 Установка:
 
-- Скачать репозиторий
+## 👥 Autors
 
+- [Lancet52](https://github.com/Lancet52)
 
+## 📄 Documentation
 
-## 👥 Авторы
-
-- [Сазонов Антон](https://github.com/Lancet52)
-
-
-## 📄 Документация
-### Быстрый старт
-Обучение модели:
+### Quick start
+Training:
 ```Python
 from lancetnic.models import LancetBC
 from lancetnic import Binary
@@ -80,12 +43,12 @@ model.train(model_name=LancetBC,
             )
             
 ```
-Инференс модели:
+Inferece:
 ```Python
 from lancetnic import Predictor
 pred=Predictor()
-prediction=pred.predict(model_path="lancetnic/models/lancet_v1/lancet_v1_bc.pth",
-             text="Ctgnbr"
+prediction=pred.predict(model_path="Your path to model (.pth)",
+             text="Your text"
              )
 
 print(prediction)

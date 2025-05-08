@@ -5,9 +5,11 @@ class Predictor:
         self.model_path=None
         self.text=None
         self.checkpoint=None
+        self.model=None
         
     def predict(self, model_path, text):
-        self.model_path=model_path
+        
+        self.model_path=f"{model_path}"
         self.text=text
         # Загружаем на CPU. Так как векторизация в базовом трейне была через библиотеку sklearn, то только CPU!!!
         self.checkpoint = torch.load(self.model_path, map_location='cpu', weights_only=False)  
@@ -23,4 +25,4 @@ class Predictor:
             self.pred = torch.argmax(self.model(X), dim=1).item()
             self.class_name = self.checkpoint['label_encoder'].inverse_transform([self.pred])[0]
 
-        return print(f"Предсказанный класс: {self.class_name}")
+        return self.class_name

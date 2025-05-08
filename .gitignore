@@ -4,3 +4,4 @@
 /datasets
 __pycache__/
 /runs
+/_private_models

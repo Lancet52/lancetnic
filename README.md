@@ -14,8 +14,8 @@
 - torchvision==0.20.1+cu124
 - scikit-learn==1.6.1
 - pandas==2.2.3
-- matplotlib
-- seaborn
+- matplotlib==3.10.1
+- seaborn==0.13.2
 
 ## Структура проекта
 ```
@@ -67,6 +67,7 @@ lancetnic/
 
 ## 📄 Документация
 ### Быстрый старт
+Обучение модели:
 ```Python
 from lancetnic.models import LancetBC
 from lancetnic import Binary
@@ -79,4 +80,13 @@ model.train(model_name=LancetBC,
             )
             
 ```
+Инференс модели:
+```Python
+from lancetnic import Predictor
+pred=Predictor()
+prediction=pred.predict(model_path="lancetnic/models/lancet_v1/lancet_v1_bc.pth",
+             text="Ctgnbr"
+             )
 
+print(prediction)
+```

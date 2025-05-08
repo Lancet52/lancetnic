@@ -1,5 +1,5 @@
 # LANCETNIC 
-
+[![PyPi Package Version](https://img.shields.io/pypi/v/aiogram.svg?style=flat-square)](https://github.com/Lancet52/)
 Библиотека LANCETNIC представляет собой инструмент для работы с текстовыми данными: обучение, анализ, инференс.
 
 Решаемые задачи:

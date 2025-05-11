@@ -6,13 +6,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="lancetnic",         
-    version="1.0.2",           
+    version="1.0.3",           
     author="Lancet52",
     author_email="lancetFPV@yandex.ru",
     description="A tool for working with text data",
     long_description=long_description,  
     long_description_content_type="text/markdown",
-    url="https://github.com/Lancet52",
+    url="https://github.com/Lancet52/lancetnic",
     packages=find_packages(),
     install_requires=[          
         "torch==2.5.1",           

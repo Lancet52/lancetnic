@@ -1,4 +1,4 @@
-# LANCETNIC 1.0.2
+# LANCETNIC 1.0.3
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 

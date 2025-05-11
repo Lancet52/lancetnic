@@ -36,7 +36,6 @@ class TrainValLoss:
         self.train_loss = train_loss
         self.val_loss = val_loss
         self.save_folder_path = save_folder_path
-
         plt.figure(figsize=self.figsize)
         plt.plot(self.epoch, self.train_loss, label='Train Loss')
         plt.plot(self.epoch, self.val_loss, label='Validation Loss')

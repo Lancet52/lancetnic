@@ -254,9 +254,9 @@ class Binary:
 
         print("Обучение завершено!")
         print(
-            f"Лучшая модель сохранена в '{self.new_folder_path}/best_model.pth' с val loss: {self.best_val_loss:.4f}")
+            f"Лучшая модель сохранена в '{self.new_folder_path}\\best_model.pt' с val loss: {self.best_val_loss:.4f}")
         print(
-            f"Последняя модель сохранена в '{self.new_folder_path}/last_model.pt'")
+            f"Последняя модель сохранена в '{self.new_folder_path}\\last_model.pt'")
 
         self.cm = ConfusionMatrix()
         self.cm.plot(last_labels=self.metrics['all_labels'][-1],

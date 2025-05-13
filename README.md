@@ -1,6 +1,7 @@
 # LANCETNIC 1.1.0
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
+[![Downloads](https://img.shields.io/pypi/dm/lancetnic?style=flat-square)](https://pypi.org/project/lancetnic/)
 [![Downloads](https://img.shields.io/pypi/dm/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
 [![MIT License](https://img.shields.io/pypi/l/lancetnic.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 

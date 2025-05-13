@@ -2,6 +2,7 @@
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 [![PyPi status](https://img.shields.io/pypi/status/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
+[![Downloads](https://static.pepy.tech/badge/lancetnic)](https://pepy.tech/project/lancetnic)
 [![Downloads](https://img.shields.io/pypi/dm/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
 [![MIT License](https://img.shields.io/pypi/l/lancetnic.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
@@ -39,10 +40,10 @@ from lancetnic.models import LancetBC
 from lancetnic import Binary
 
 model = Binary()
-model.train(model_name=LancetBC,
-            train_path="datasets/spam_train.csv",
-            val_path="datasets/spam_val.csv",
-            num_epochs=50
+model.train(model_name=LancetBC, # A model for binary classification
+            train_path="datasets/spam_train.csv", # The path to the training dataset
+            val_path="datasets/spam_val.csv", # Path to the validation dataset
+            num_epochs=50 # Number of training epochs
             )
             
 ```

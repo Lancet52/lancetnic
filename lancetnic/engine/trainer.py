@@ -10,7 +10,7 @@ from sklearn.metrics import f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from lancetnic.utils.metrics import ConfusionMatrix, TrainValLoss, TrainValAcc, F1Score
+from lancetnic.utils import Metrics, dir
 
 
 # Датасет для бинарной классификиции
@@ -66,6 +66,8 @@ class Binary:
         self.num_epochs = num_epochs
         self.df_train = pd.read_csv(self.train_path)
         self.df_val = pd.read_csv(self.val_path)
+        # Инициализация метрик
+        self.mtx = Metrics()
 
         # Векторизация текста
         self.vectorizer = TfidfVectorizer()
@@ -86,30 +88,7 @@ class Binary:
 
         # Настройка обучения
         # Создание папки для сохранения результатов обучения
-        base_dir = os.getcwd()
-        base_dir_runs = os.path.join(base_dir, "runs")
-        if not os.path.exists(base_dir_runs):
-            os.makedirs(base_dir_runs)
-
-        train_folders = []
-        for folder in os.listdir(base_dir_runs):
-            if os.path.isdir(os.path.join(base_dir_runs, folder)) and folder.startswith("train_"):
-                train_folders.append(folder)
-
-        folder_numbers = []
-        for f in train_folders:
-            try:
-                num = int(f.split("_")[-1])
-                folder_numbers.append(num)
-            except ValueError:
-                continue
-
-        next_number = max(folder_numbers) + 1 if folder_numbers else 0
-        new_folder = f"train_{next_number}"
-        self.new_folder_path = os.path.join(base_dir_runs, new_folder)
-
-        os.makedirs(self.new_folder_path, exist_ok=True)
-        print(f"Создана папка: {self.new_folder_path}")
+        self.new_folder_path = dir()
 
         # Создание файла для результатов
         headers = ["epoch", "train_loss", "train_acc, %",
@@ -206,6 +185,12 @@ class Binary:
             # Сохранение лучшей модели
             if val_loss_epoch < self.best_val_loss:
                 self.best_val_loss = val_loss_epoch
+                # Сохранение матрицы ошибок для лучшей модели
+                self.mtx.confus_matrix(last_labels=all_labels,
+                                       last_preds=all_preds,
+                                       label_encoder=self.label_encoder.classes_,
+                                       save_folder_path=self.new_folder_path,
+                                       plt_name="confusion_matrix_best_epoch")
                 torch.save({
                     'model': self.model,
                     'input_size': self.input_size,
@@ -258,26 +243,24 @@ class Binary:
         print(
             f"Последняя модель сохранена в '{self.new_folder_path}\\last_model.pt'")
 
-        self.cm = ConfusionMatrix()
-        self.cm.plot(last_labels=self.metrics['all_labels'][-1],
-                     last_preds=self.metrics['all_preds'][-1],
-                     label_encoder=self.label_encoder.classes_,
-                     save_folder_path=self.new_folder_path)
+        # Визуализация метрик
 
-        self.tvl = TrainValLoss()
-        self.tvl.plot(epoch=self.metrics['epoch'],
-                      train_loss=self.metrics['train_loss'],
-                      val_loss=self.metrics['val_loss'],
-                      save_folder_path=self.new_folder_path)
+        self.mtx.confus_matrix(last_labels=self.metrics['all_labels'][-1],
+                               last_preds=self.metrics['all_preds'][-1],
+                               label_encoder=self.label_encoder.classes_,
+                               save_folder_path=self.new_folder_path,
+                               plt_name="confusion_matrix_last_epoch")
 
-        self.tva = TrainValAcc()
-        self.tva.plot(epoch=self.metrics['epoch'],
-                      train_acc=self.metrics['train_acc'],
-                      val_acc=self.metrics['val_acc'],
-                      save_folder_path=self.new_folder_path)
-        
-        self.f1s=F1Score()
-        self.f1s.plot(epoch=self.metrics['epoch'],
-                      f1_score=self.metrics['f1_score'],
-                      save_folder_path=self.new_folder_path)
-    
+        self.mtx.train_val_loss(epoch=self.metrics['epoch'],
+                                train_loss=self.metrics['train_loss'],
+                                val_loss=self.metrics['val_loss'],
+                                save_folder_path=self.new_folder_path)
+
+        self.mtx.train_val_acc(epoch=self.metrics['epoch'],
+                               train_acc=self.metrics['train_acc'],
+                               val_acc=self.metrics['val_acc'],
+                               save_folder_path=self.new_folder_path)
+
+        self.mtx.f1score(epoch=self.metrics['epoch'],
+                         f1_score=self.metrics['f1_score'],
+                         save_folder_path=self.new_folder_path)

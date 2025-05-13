@@ -4,16 +4,17 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
 
-class ConfusionMatrix:
+class Metrics:
     def __init__(self, figsize=(10, 8), cmap="Blues"):
         self.figsize = figsize
         self.cmap = cmap
 
-    def plot(self, last_labels, last_preds, label_encoder, save_folder_path):
+    def confus_matrix(self, last_labels, last_preds, label_encoder, save_folder_path, plt_name="confusion_matrix"):
         self.last_labels = last_labels
         self.last_preds = last_preds
         self.label_encoder = label_encoder
         self.save_folder_path = save_folder_path
+        self.plt_name=plt_name
         self.conf_matrix = confusion_matrix(self.last_labels, self.last_preds)
         plt.figure(figsize=self.figsize)
 
@@ -23,15 +24,10 @@ class ConfusionMatrix:
         plt.xlabel('Predicted labels')
         plt.ylabel('True labels')
         plt.title('Confusion Matrix')
-        plt.savefig(f"{self.save_folder_path}/confusion_matrix.png")
+        plt.savefig(f"{self.save_folder_path}/{self.plt_name}.png")
         plt.close()
 
-
-class TrainValLoss:
-    def __init__(self, figsize=(10, 8)):
-        self.figsize = figsize
-
-    def plot(self, epoch, train_loss, val_loss, save_folder_path):
+    def train_val_loss(self, epoch, train_loss, val_loss, save_folder_path):
         self.epoch = epoch
         self.train_loss = train_loss
         self.val_loss = val_loss
@@ -47,12 +43,7 @@ class TrainValLoss:
         plt.savefig(f"{self.save_folder_path}/train_val_loss.png")
         plt.close()
 
-
-class TrainValAcc:
-    def __init__(self, figsize=(10, 8)):
-        self.figsize = figsize
-
-    def plot(self, epoch, train_acc, val_acc, save_folder_path):
+    def train_val_acc(self, epoch, train_acc, val_acc, save_folder_path):
         self.epoch = epoch
         self.train_acc = train_acc
         self.val_acc = val_acc
@@ -69,12 +60,7 @@ class TrainValAcc:
         plt.savefig(f"{self.save_folder_path}/train_val_acc.png")
         plt.close()
 
-
-class F1Score:
-    def __init__(self, figsize=(10, 8)):
-        self.figsize = figsize
-
-    def plot(self, epoch, f1_score, save_folder_path):
+    def f1score(self, epoch, f1_score, save_folder_path):
         self.epoch = epoch
         self.f1_score = f1_score
         self.save_folder_path = save_folder_path

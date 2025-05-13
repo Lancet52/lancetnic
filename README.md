@@ -1,4 +1,4 @@
-# LANCETNIC 1.0.3
+# LANCETNIC 1.1.0
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 
@@ -47,7 +47,7 @@ Inferece:
 ```Python
 from lancetnic import Predictor
 pred=Predictor()
-prediction=pred.predict(model_path="Your path to model (.pth)",
+prediction=pred.predict(model_path="Your path to model (.pt)",
              text="Your text"
              )
 

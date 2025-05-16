@@ -33,8 +33,8 @@ pip install lancetnic
 
 ## 📄 Documentation
 
-### [Документация на русском](lancetnic/docs/RU.md)
-### [Documentation in English](lancetnic/docs/EN.md)
+### [Документация на русском](https://github.com/Lancet52/lancetnic/blob/main/lancetnic/docs/RU.md)
+### [Documentation in English](https://github.com/Lancet52/lancetnic/blob/main/lancetnic/docs/EN.md)
 
 ## Quick start
 Training:

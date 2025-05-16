@@ -1,4 +1,4 @@
-# LANCETNIC 1.1.0
+# LANCETNIC 1.2.0
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 [![PyPi status](https://img.shields.io/pypi/status/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
@@ -33,7 +33,10 @@ pip install lancetnic
 
 ## 📄 Documentation
 
-### Quick start
+### [Документация на русском](lancetnic/docs/RU.md)
+### [Documentation in English](lancetnic/docs/EN.md)
+
+## Quick start
 Training:
 ```Python
 from lancetnic.models import LancetBC
@@ -41,8 +44,8 @@ from lancetnic import Binary
 
 model = Binary()
 model.train(model_name=LancetBC, # A model for binary classification
-            train_path="datasets/spam_train.csv", # The path to the training dataset
-            val_path="datasets/spam_val.csv", # Path to the validation dataset
+            train_path="train.csv", # The path to the training dataset
+            val_path="val.csv", # Path to the validation dataset
             num_epochs=50 # Number of training epochs
             )
             
@@ -51,7 +54,7 @@ Inferece:
 ```Python
 from lancetnic import Predictor
 pred=Predictor()
-prediction=pred.predict(model_path="Your path to model (.pt)",
+prediction=pred.predict(model_path="best_model.pt",
              text="Your text"
              )
 

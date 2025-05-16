@@ -9,7 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from sklearn.model_selection import train_test_split
 from lancetnic.utils import Metrics, dir
 
 
@@ -27,7 +27,7 @@ class BinaryDataset(Dataset):
 
 
 class Binary:
-    def __init__(self, text_column='description', label_column='category'):
+    def __init__(self, text_column='description', label_column='category', split_ratio=0.2, random_state=42):
         self.text_column = text_column
         self.label_column = label_column
 
@@ -56,19 +56,11 @@ class Binary:
         self.train_path = None
         self.val_path = None
         self.csv_path = None
+        self.split_ratio = split_ratio
+        self.random_state = random_state
 
-    def train(self, model_name, train_path, val_path, num_epochs, hidden_size=256, num_layers=1, batch_size=128, learning_rate=0.001):
-        """Обучение модели"""
-        # Загрузка и предобработка данных
-        self.model_name = model_name
-        self.train_path = train_path
-        self.val_path = val_path
-        self.num_epochs = num_epochs
-        self.df_train = pd.read_csv(self.train_path)
+    def vectorize_with_val_path(self):
         self.df_val = pd.read_csv(self.val_path)
-        # Инициализация метрик
-        self.mtx = Metrics()
-
         # Векторизация текста
         self.vectorizer = TfidfVectorizer()
         self.X_train = self.vectorizer.fit_transform(
@@ -85,6 +77,51 @@ class Binary:
 
         self.input_size = self.X_train.shape[1]
         self.num_classes = len(self.label_encoder.classes_)
+        return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.num_classes
+    
+    def vectorize_no_val_path(self):
+        # Векторизация текста
+        self.vectorizer = TfidfVectorizer()
+        X_all = self.vectorizer.fit_transform(
+            self.df_train[self.text_column]).toarray()
+
+        # Кодирование меток
+        self.label_encoder = LabelEncoder()
+        y_all = self.label_encoder.fit_transform(
+            self.df_train[self.label_column])
+
+        # Разделение данных на тренировочную и валидационную выборки
+        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
+            X_all, y_all, test_size=self.split_ratio, random_state=self.random_state)
+
+        self.input_size = self.X_train.shape[1]
+        self.num_classes = len(self.label_encoder.classes_)
+        return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.num_classes
+
+    def train(self, model_name, train_path, val_path, num_epochs, hidden_size=256, num_layers=1, batch_size=128, learning_rate=0.001, dropout=0):
+        """Обучение модели"""
+        # Загрузка и предобработка данных
+        self.model_name = model_name
+        self.train_path = train_path
+        self.val_path = val_path
+        self.num_epochs = num_epochs
+        self.df_train = pd.read_csv(self.train_path)
+        
+        # Инициализация метрик
+        self.mtx = Metrics()
+        if val_path is None:
+            try:
+                self.vectorize_no_val_path()
+            except Exception as e:
+                print(e)
+                return
+        else:
+            try:
+                self.vectorize_with_val_path()
+            except Exception as e:
+                print(e)
+                print("Insert true val_path")
+                return
 
         # Настройка обучения
         # Создание папки для сохранения результатов обучения
@@ -107,7 +144,7 @@ class Binary:
 
         # Инициализация модели
         self.model = self.model_name(
-            self.input_size, hidden_size, num_layers, self.num_classes)
+            self.input_size, hidden_size, num_layers, self.num_classes, dropout)
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
 
@@ -129,7 +166,7 @@ class Binary:
 
             for inputs, labels in self.train_loader:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
-                inputs = inputs.float()  # Добавляем преобразование типа
+                inputs = inputs.float()  # Добавление преобразование типа
 
                 outputs = self.model(inputs.unsqueeze(1))
                 loss = self.criterion(outputs, labels)
@@ -152,7 +189,7 @@ class Binary:
                 for inputs, labels in self.val_loader:
                     inputs, labels = inputs.to(
                         self.device), labels.to(self.device)
-                    inputs = inputs.float()  # Добавляем преобразование типа
+                    inputs = inputs.float()  # Добавление преобразование типа
 
                     outputs = self.model(inputs.unsqueeze(1))
                     loss = self.criterion(outputs, labels)
@@ -190,7 +227,7 @@ class Binary:
                                        last_preds=all_preds,
                                        label_encoder=self.label_encoder.classes_,
                                        save_folder_path=self.new_folder_path,
-                                       plt_name="confusion_matrix_best_epoch")
+                                       plt_name="confusion_matrix_best_model")
                 torch.save({
                     'model': self.model,
                     'input_size': self.input_size,
@@ -249,7 +286,7 @@ class Binary:
                                last_preds=self.metrics['all_preds'][-1],
                                label_encoder=self.label_encoder.classes_,
                                save_folder_path=self.new_folder_path,
-                               plt_name="confusion_matrix_last_epoch")
+                               plt_name="confusion_matrix_last_model")
 
         self.mtx.train_val_loss(epoch=self.metrics['epoch'],
                                 train_loss=self.metrics['train_loss'],

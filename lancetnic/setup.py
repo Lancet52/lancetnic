@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="lancetnic",         
-    version="1.2.0",           
+    version="1.2.1",           
     author="Lancet52",
     author_email="lancetFPV@yandex.ru",
     description="A tool for working with text data",

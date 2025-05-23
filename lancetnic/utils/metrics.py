@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
@@ -14,7 +15,7 @@ class Metrics:
         self.last_preds = last_preds
         self.label_encoder = label_encoder
         self.save_folder_path = save_folder_path
-        self.plt_name=plt_name
+        self.plt_name = plt_name
         self.conf_matrix = confusion_matrix(self.last_labels, self.last_preds)
         plt.figure(figsize=self.figsize)
 
@@ -74,4 +75,22 @@ class Metrics:
         plt.legend()
         plt.grid(True)
         plt.savefig(f"{self.save_folder_path}/f1_score.png")
+        plt.close()
+
+    def dataset_counts(self, data_path, label_column, save_folder_path):
+        self.data_path = data_path
+        self.save_folder_path = save_folder_path
+        self.label_column = label_column
+
+        df = pd.read_csv(self.data_path)
+
+        counts = df[self.label_column].value_counts()
+      
+        plt.figure(figsize=self.figsize)
+        plt.bar(counts.index, counts.values)
+        plt.xlabel('Classes')
+        plt.ylabel('Counts of classes')
+        plt.title('Class distribution')
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.savefig(f"{self.save_folder_path}/dataset_counts.png")
         plt.close()

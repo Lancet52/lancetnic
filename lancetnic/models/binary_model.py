@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 # Структура модели бинарной классификации (Binary Classifier)
 class LancetBC(nn.Module):
@@ -21,3 +21,4 @@ class LancetBC(nn.Module):
         out = out[:, -1, :]
         out = self.fc(out)
         return out   
+    

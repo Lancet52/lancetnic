@@ -301,3 +301,7 @@ class Binary:
         self.mtx.f1score(epoch=self.metrics['epoch'],
                          f1_score=self.metrics['f1_score'],
                          save_folder_path=self.new_folder_path)
+        
+        self.mtx.dataset_counts(data_path=self.train_path,
+                                label_column=self.label_column,
+                                save_folder_path=self.new_folder_path)

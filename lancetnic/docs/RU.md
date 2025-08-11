@@ -1,6 +1,9 @@
 # Гиперпараметры обучения (метод train)
 
 ## Класс TextClass()
+```Python
+from lancetnic import TextClass
+```
 
 | Атрибут         | Тип       | Допустимые значения | Описание |
 |-----------------|-----------|---------------------|----------|
@@ -10,6 +13,9 @@
 | `random_state` | int      | (1, 99) | Фиксированный seed (по умолчанию: 42) |
 
 ## Класс TextScalarClass()
+```Python
+from lancetnic import TextScalarClass
+```
 
 | Атрибут         | Тип       | Допустимые значения | Описание |
 |-----------------|-----------|---------------------|----------|
@@ -50,8 +56,16 @@
 ## LancetMC (LSTM классификатор)
 Базовый LSTM для многоклассовой классификации текста
 
+```Python
+from lancetnic.models import LancetMCA
+```
+
 ## LancetMCA (LSTM + Attention)
 Улучшенная версия с механизмом внимания
+
+```Python
+from lancetnic.models import LancetMCA
+```
 
 | Характеристика | LancetMC | LancetMCA |
 |---------------|----------|-----------|

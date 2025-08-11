@@ -2,6 +2,10 @@
 
 ## Class TextClass()
 
+```Python
+from lancetnic import TextClass
+```
+
 | Attribute       | Type      | Values         | Description                                                                 |
 |----------------|----------|----------------|--------------------------------------------------------------------------|
 | `text_column`  | string   | Any valid column name | Name of the column containing text data in the dataset                |
@@ -10,6 +14,10 @@
 | `random_state` | int      | (1, 99)        | Random seed for reproducible splits (default: 42)                     |
 
 ## Class TextScalarClass()
+
+```Python
+from lancetnic import TextScalarClass
+```
 
 | Attribute       | Type      | Values         | Description                                                                 |
 |----------------|----------|----------------|--------------------------------------------------------------------------|
@@ -53,9 +61,17 @@
 
 A standard sequential model for multiclass classification using LSTM layers. Designed primarily for text classification tasks where temporal dependencies in the data need to be captured.
 
+```Python
+from lancetnic.models import LancetMC
+```
+
 ## LancetMCA (LSTM with Attention Multiclass Classifier)
 
 An enhanced version of LancetMC incorporating attention mechanisms. Designed for more complex classification tasks where certain parts of the input sequence are more important than others.
+
+```Python
+from lancetnic.models import LancetMCA
+```
 
 | Key Differences Between Models | LancetMC          | LancetMCA                     |
 |--------------------------------|-------------------|-------------------------------|

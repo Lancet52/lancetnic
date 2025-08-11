@@ -1,4 +1,4 @@
-# LANCETNIC 2.0.0
+# LANCETNIC 2.0.1
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 [![PyPi status](https://img.shields.io/pypi/status/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
@@ -44,6 +44,9 @@ pip install lancetnic
 ## Quick start
 ### Text classification example
 ```Python
+from lancetnic.models import LancetMC
+from lancetnic import TextClass
+
 text_model = TextClass(
             text_column='description',  # Column name containing text data
             label_column='category',    # Column name containing labels
@@ -67,6 +70,9 @@ text_model.train(model_name=LancetMC,   # Model architecture for text classifica
 ```
 ### Making predictions
 ```Python
+from lancetnic import TextClass
+
+text_model = TextClass()
 text_pred = text_model.predict(
                 model_path="model.pth", # Path to saved model
                 text="Sample text to classify" # Text input for prediction
@@ -75,6 +81,9 @@ text_pred = text_model.predict(
 
 ### Combined text and numeric features example
 ```Python
+from lancetnic.models import LancetMC
+from lancetnic import TextScalarClass
+
 mixed_model = TextScalarClass(
                 text_column='description',  # Text column name (None if only numeric)
                 data_column=['feat1', 'feat2'], # List of numeric feature columns
@@ -99,6 +108,9 @@ mixed_model.train(model_name=LancetMC,   # Model architecture for text classific
 
 ### Making predictions
 ```Python
+from lancetnic import TextScalarClass
+
+mixed_model = TextScalarClass()
 mixed_pred = mixed_model.predict(
                 model_path="mixed_model.pth", # Path to saved model
                 text="Product description",  # Text input (None if only numeric)
@@ -107,7 +119,17 @@ mixed_pred = mixed_model.predict(
 ```
 
 
-## There are two classes of basic models in LANCETNIC: LancetMC and LancetMCA
+## There are two classes of basic models in LANCETNIC: 
+
+- LancetMC
+```Python
+from lancetnic.models import LancetMC
+```
+- LancetMCA
+```Python
+from lancetnic.models import LancetMC
+```
+
 
 | Key Differences Between Models | LancetMC          | LancetMCA                     |
 |--------------------------------|-------------------|-------------------------------|

@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="lancetnic",         
-    version="1.2.1",           
+    version="2.0.0",           
     author="Lancet52",
     author_email="lancetFPV@yandex.ru",
     description="A tool for working with text data",
@@ -21,7 +21,8 @@ setup(
         "scikit-learn==1.6.1",
         "pandas==2.2.3",
         "matplotlib==3.10.1",
-        "seaborn==0.13.2",        
+        "seaborn==0.13.2",
+        "tqdm==4.67.1"      
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

@@ -1,4 +1,3 @@
-from lancetnic.models.binary_model import LancetBC
+from lancetnic.models.class_model import LancetMC, LancetMCA
 
-
-__all__=["LancetBC"]
+__all__=["LancetMC", "LancetMCA"]

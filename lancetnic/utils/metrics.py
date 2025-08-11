@@ -6,6 +6,7 @@ from sklearn.metrics import confusion_matrix
 
 
 class Metrics:
+    # Базовый класс метрик
     def __init__(self, figsize=(10, 8), cmap="Blues"):
         self.figsize = figsize
         self.cmap = cmap

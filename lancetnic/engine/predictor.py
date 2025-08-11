@@ -14,10 +14,7 @@ class Predictor:
         # Загружаем на CPU. Так как векторизация в базовом трейне была через библиотеку sklearn, то только CPU!!!
         self.checkpoint = torch.load(self.model_path, map_location='cpu', weights_only=False)  
         self.model = self.checkpoint['model'] 
-        self.model.eval()  
-
-        
-        
+        self.model.eval()               
         X = self.checkpoint['vectorizer'].transform([self.text]).toarray()
         X = torch.tensor(X, dtype=torch.float32).unsqueeze(1)
 

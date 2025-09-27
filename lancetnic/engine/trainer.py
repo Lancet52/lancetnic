@@ -67,6 +67,9 @@ class TextClass:
             criterion=nn.BCELoss()
             return criterion
         
+        else:
+            print("Неизвестная функция потерь")
+        
     # Выбор оптимизатора
     def optimaze(self, optim_name, params, lr):
         if optim_name=='Adam':
@@ -127,23 +130,20 @@ class TextClass:
         return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.num_classes
 
     def train(self, model_name, train_path, val_path, num_epochs, hidden_size=256, num_layers=1, batch_size=128, learning_rate=0.001, dropout=0, optim_name='Adam', crit_name='CELoss'):
-        """Train the model with given parameters and datasets.
+        """Обучение модели с заданными параметрами и наборами данных.
 
         Args:
-            model_name (type): Model class reference (e.g., LancetMC, LancetMCA) that will be instantiated for training
-            train_path (str): Path to the training data file/directory.
-            val_path (str): Path to the validation data file/directory.
-            num_epochs (int): Number of complete passes through the training dataset
-            hidden_size (int, optional): Number of units in hidden layers. Defaults to 256.
-            num_layers (int, optional): Number of hidden layers in the model. Defaults to 1.
-            batch_size (int, optional): Number of samples per gradient update. Defaults to 128.
-            learning_rate (float, optional): Step size at each optimization step. Defaults to 0.001.
-            dropout (float, optional): Dropout rate for regularization (between 0 and 1). 
-                0 means no dropout. Defaults to 0.
-            optim_name (str, optional): Name of optimizer from torch.optim 
-                ('Adam', 'RAdam', 'SGD', 'RMSprop', 'Adadelta', etc.). Defaults to 'Adam'.
-            crit_name (str, optional): Name of loss criterion from torch.nn 
-                ('CELoss', 'BCELoss'). Defaults to 'CELoss'.
+            model_name (type): Ссылка на класс модели (например, LancetMC, LancetMCA, ScalpelMC), экземпляр которой будет создан для обучения.
+            train_path (str): Путь к файлу/каталогу обучающих данных.
+            val_path (str): путь к файлу/каталогу проверочных данных.
+            num_epochs (int): Количество эпох.
+            hidden_size (int): количество нейронов в скрытых слоях. По умолчанию используется значение 256.
+            num_layers (int): Количество скрытых слоев в модели. Значение по умолчанию равно 1.
+            batch_size (int): количество выборок при обновлении градиента. Значение по умолчанию равно 128.
+            learning_rate (float): размер шага на каждом шаге оптимизации. Значение по умолчанию равно 0,001.
+            dropout (float): Коэффициент отсева для регуляризации (от 0 до 1).Значение по умолчанию равно 0.
+            optim_name (str): Оптимизатор ('Adam', 'RAdam', 'SGD', 'RMSProp', 'Adadelta' и т.д.). По умолчанию используется 'Adam'.
+            crit_name (str): Функция потерь ('CELoss'). По умолчанию используется значение 'CELoss'.
         """
 
         # Загрузка и предобработка данных
@@ -221,7 +221,12 @@ class TextClass:
             input_size=self.input_size,
             num_classes=self.num_classes,
             train_path=train_path,
-            label_column=self.label_column)
+            label_column=self.label_column,
+            dropout=dropout,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            optim_name=optim_name,
+            crit_name=crit_name)
 
         # Визуализация метрик
         self.visualize_metrics(metrics)
@@ -264,20 +269,18 @@ class TextClass:
         )
 
     def predict(self, model_path, text):
-        """The inference model
+        """Инференс модели
 
         Args:
-            model_path (str): Path to the model file/directory
-            text (str): Your text
+            model_path (str): Путь до модели
+            text (str): Текстовые данные
         """
         self.model_path=f"{model_path}"
         self.text=text
         # Загружаем на CPU. Так как векторизация в базовом трейне была через библиотеку sklearn, то только CPU!!!Пока так. 
         self.checkpoint = torch.load(self.model_path, map_location='cpu', weights_only=False)  
         self.model = self.checkpoint['model'] 
-        self.model.eval()  
-
-        
+        self.model.eval()        
         
         X = self.checkpoint['vectorizer_text'].transform([self.text]).toarray()
         X = torch.tensor(X, dtype=torch.float32).unsqueeze(1)
@@ -362,7 +365,7 @@ class TextScalarClass:
             self.X_train = self.vectorizer_scalar.fit_transform(
                 self.df_train[self.data_column].values)
             # Векторизация числовых признаков для val
-            self.X_val = self.vectorizer_scalar.fit_transform(
+            self.X_val = self.vectorizer_scalar.transform(
                 self.df_val[self.data_column].values)
             
             
@@ -389,7 +392,7 @@ class TextScalarClass:
             
 
             # Векторизация числовых признаков для val            
-            self.scalar_encoder_val = self.vectorizer_scalar.fit_transform(
+            self.scalar_encoder_val = self.vectorizer_scalar.transform(
                 self.df_val[self.data_column].values)
 
             # Объединение тикера и числовых признаков для val
@@ -451,23 +454,20 @@ class TextScalarClass:
         return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.num_classes
     
     def train(self, model_name, train_path, val_path, num_epochs, hidden_size=256, num_layers=1, batch_size=128, learning_rate=0.001, dropout=0, optim_name='Adam', crit_name='CELoss'):
-        """Train the model with given parameters and datasets.
+        """Обучение модели с заданными параметрами и наборами данных.
 
         Args:
-            model_name (type): Model class reference (e.g., LancetMC, LancetMCA) that will be instantiated for training
-            train_path (str): Path to the training data file/directory.
-            val_path (str): Path to the validation data file/directory.
-            num_epochs (int): Number of complete passes through the training dataset
-            hidden_size (int, optional): Number of units in hidden layers. Defaults to 256.
-            num_layers (int, optional): Number of hidden layers in the model. Defaults to 1.
-            batch_size (int, optional): Number of samples per gradient update. Defaults to 128.
-            learning_rate (float, optional): Step size at each optimization step. Defaults to 0.001.
-            dropout (float, optional): Dropout rate for regularization (between 0 and 1). 
-                0 means no dropout. Defaults to 0.
-            optim_name (str, optional): Name of optimizer from torch.optim 
-                ('Adam', 'RAdam', 'SGD', 'RMSprop', 'Adadelta', etc.). Defaults to 'Adam'.
-            crit_name (str, optional): Name of loss criterion from torch.nn 
-                ('CELoss', 'BCELoss'). Defaults to 'CELoss'.
+            model_name (type): Ссылка на класс модели (например, LancetMC, LancetMCA, ScalpelMC), экземпляр которой будет создан для обучения.
+            train_path (str): Путь к файлу/каталогу обучающих данных.
+            val_path (str): путь к файлу/каталогу проверочных данных.
+            num_epochs (int): Количество эпох.
+            hidden_size (int): количество нейронов в скрытых слоях. По умолчанию используется значение 256.
+            num_layers (int): Количество скрытых слоев в модели. Значение по умолчанию равно 1.
+            batch_size (int): количество выборок при обновлении градиента. Значение по умолчанию равно 128.
+            learning_rate (float): размер шага на каждом шаге оптимизации. Значение по умолчанию равно 0,001.
+            dropout (float): Коэффициент отсева для регуляризации (от 0 до 1).Значение по умолчанию равно 0.
+            optim_name (str): Оптимизатор ('Adam', 'RAdam', 'SGD', 'RMSProp', 'Adadelta' и т.д.). По умолчанию используется 'Adam'.
+            crit_name (str): Функция потерь ('CELoss'). По умолчанию используется значение 'CELoss'.
         """
         # Загрузка и предобработка данных
         self.model_name = model_name
@@ -544,7 +544,12 @@ class TextScalarClass:
             input_size=self.input_size,
             num_classes=self.num_classes,
             train_path=train_path,
-            label_column=self.label_column)
+            label_column=self.label_column,
+            dropout=dropout,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            optim_name=optim_name,
+            crit_name=crit_name)
 
         # Визуализация метрик
         self.visualize_metrics(metrics)
@@ -586,11 +591,12 @@ class TextScalarClass:
             save_folder_path=self.new_folder_path
         )
     def predict(self, model_path, text, numeric):
-        """The inference model
+        """Инференс модели
 
         Args:
-            model_path (str): Path to the model file/directory
-            text (str): Your text
+            model_path (str): Путь до модели
+            text (str): Текстовые данные
+            numeric (list): Числовые данные
         """
         self.model_path=f"{model_path}"
         self.text=text

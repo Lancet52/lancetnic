@@ -93,5 +93,6 @@ class Metrics:
         plt.ylabel('Counts of classes')
         plt.title('Class distribution')
         plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.grid(axis='x', visible=False)
         plt.savefig(f"{self.save_folder_path}/dataset_counts.png")
         plt.close()

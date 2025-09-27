@@ -1,4 +1,4 @@
-# LANCETNIC 2.0.2
+# LANCETNIC 2.1.0
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 [![PyPi status](https://img.shields.io/pypi/status/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
@@ -6,120 +6,202 @@
 [![Downloads](https://img.shields.io/pypi/dm/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
 [![MIT License](https://img.shields.io/pypi/l/lancetnic.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-LANCETNIC is a library with built-in neural network models for working with text and numeric data. Lancetnic provides convenient tools for:
+### LANCETNIC - это библиотека, которая представляет базовый набор для решения задач:
 
-- Data preparation and vectorization
-- Training classification models
-- Visualization of metrics
-- Forecasting on new data
+- Классификации текстовых, числовых данных, а также их комбинаций.
 
-The library allows you to work with purely textual data, as well as with a combination of textual and numerical features, trend and price analysis.
-Usage examples: text classification, identification of spam, fraudulent messages, working with numerical series and time signs.
 
-## 🚀 Installing:
-Install with CUDA
+### Библиотека предоставляет ряд инструментов для:
+- Подготовки и векторизации данных перед обучением.
+- Обучению модели.
+- Визуализации метрик по окончании обучения, на основании которых принимается решение о точности обученной модели.
+- Инференса моедели на основе новых данных.
 
-To work with the GPU, it is recommended to install PyTorch with CUDA support (OPTIONAL):
+С помощью LANCETNIC можно успешно создавать свои собственные проекты для классификации текса, выявления спама, мошеннических сообщений, прогнозировании цен, а также проводить работы с временными рядами.
+
+
+Библиотека позволяет работать как с чисто текстовыми данными, так и с комбинацией текстовых и числовых характеристик, анализировать тенденции и цены.
+Примеры использования: классификация текста, выявление спама, мошеннических сообщений, работа с числовыми рядами и временными обозначениями.
+
+## 🚀 Установка:
+Установка с помощью CUDA
+
+Для работы с графическим процессором рекомендуется установить PyTorch с поддержкой CUDA (НЕОБЯЗАТЕЛЬНО):
 
 ```bash
 pip install torch==2.5.1+cu124 torchaudio==2.5.1+cu124 torchvision==0.20.1+cu124 --index-url https://download.pytorch.org/whl/cu124
 ```
 
-Then install lancetnic:
+Затем установка lancetnic:
 
 ```bash
 pip install lancetnic
 ```
 
-## 👥 Autors
+## 👥 Авторы
 
 - [Lancet52](https://github.com/Lancet52)
 
-## 📄 Documentation
+## 📄 Документация:
 
-### [Документация на русском](https://github.com/Lancet52/lancetnic/blob/main/lancetnic/docs/RU.md)
-### [Documentation in English](https://github.com/Lancet52/lancetnic/blob/main/lancetnic/docs/EN.md)
+<div align="center">
+
+## Задача классификации
+
+<img src="lancetnic/docs/images/classification.png" alt="Классификация" width="500">
+</div>
+
+- ### Класс `TextClass()`
+Позволяет работать с текстовыми данными.
+```Python
+from lancetnic import TextClass
+```
+
+| Атрибут         | Тип       | Допустимые значения | Описание |
+|-----------------|-----------|---------------------|----------|
+| `text_column`  | string   | Любое валидное название столбца | Название столбца с текстовыми данными |
+| `label_column` | string   | Любое валидное название столбца | Название столбца с целевыми метками |
+| `split_ratio`  | float    | (0.01, 0.99) | Доля данных для валидации (при val_path=None) |
+| `random_state` | int      | (1, 99) | Фиксированный seed (по умолчанию: 42) |
+           
+### метод `train`
+
+| Параметр       | Тип       | Значения | Описание |
+|----------------|-----------|----------|----------|
+| `model_name`   | class    | LancetMC/LancetMCA | Архитектура модели |
+| `train_path`   | string   | Путь | Путь к обучающим данным (CSV) |
+| `val_path`     | string   | Путь/None | Путь к валидационным данным |
+| `num_epochs`   | int      | ≥1 | Количество эпох |
+| `hidden_size`  | int      | ≥1 | Нейронов в слое (по умолчанию 256) |
+| `num_layers`   | int      | ≥1 | Количество слоёв (по умолчанию 1) |
+| `batch_size`   | int      | ≥1 | Размер батча (по умолчанию 128) |
+| `learning_rate`| float    | (1e-5, 1e-1) | Learning rate (по умолчанию 0.001) |
+| `dropout`      | float    | [0.0, 0.99) | Dropout (по умолчанию 0) |
+| `optim_name`   | string   | Adam/RAdam/SGD/RMSprop/Adadelta | Оптимизатор |
+| `crit_name`    | string   | CELoss | Функция потерь |
+
+### метод `predict`
+
+| Параметр       | Тип       | Значения | Описание |
+|----------------|-----------|----------|----------|
+| `model_path`   | string   | Путь | Путь к модели (.pth) |
+| `text`         | string   | Текст | Текст для классификации |
 
 
-## Quick start
-### Text classification example
+### Пример для калссификации текста
 ```Python
 from lancetnic.models import LancetMC
 from lancetnic import TextClass
 
 text_model = TextClass(
-            text_column='description',  # Column name containing text data
-            label_column='category',    # Column name containing labels
-            split_ratio=0.2,            # Train/validation split ratio (if no val_path)
-            random_state=42             # Random seed for reproducibility
+            text_column='description',  # Имя столбца, содержащего текстовые данные
+            label_column='category',    # Имя столбца, содержащего метки
+            split_ratio=0.2,            # Соотношение между обучением и валидацией (если val_path отсутствует)
+            random_state=42             # Случайное начальное значение для воспроизводимости результатов
             )
 
-text_model.train(model_name=LancetMC,   # Model architecture for text classification
-                train_path="train.csv", # Path to training data (CSV format)
-                val_path="val.csv",     # Path to validation data (None for auto-split)
-                num_epochs=50,          # Total training epochs
-                hidden_size=256,        # Size of hidden layers
-                num_layers=1,           # Number of hidden layers
-                batch_size=256,         # Batch size for training
-                learning_rate=0.001,    # Learning rate for optimizer
-                dropout=0,              # Dropout rate (0-1)
-                optim_name='Adam',      # Optimizer ('Adam', 'SGD', 'RAdam', etc.)
-                crit_name='CELoss'      # Loss function ('CELoss' or 'BCELoss')
+text_model.train(model_name=LancetMC,   # Имя модели (доступен выбор из библиотеки)
+                train_path="train.csv", # Путь к тренировочным данным (формат CSV)
+                val_path=None,          # Путь к валидационным данным. Может отсутсвовать: None
+                num_epochs=50,          # Количество эпох обучения
+                hidden_size=256,        # Размер скрытого слова (количество нейронов в слое)
+                num_layers=1,           # Количество скрытых слоев
+                batch_size=256,         # Размер пакетов (батчей) для обучения
+                learning_rate=0.001,    # Скорость обучения для оптимизатора
+                dropout=0,              # Процент отключенных нейронов (0-1)
+                optim_name='Adam',      # Оптимизатор ('Adam', 'SGD', 'RAdam', и др.)
+                crit_name='CELoss'      # Функция потерь ('CELoss' и др.)
                 )
-           
 ```
-### Making predictions
+### Инференс модели
 ```Python
 from lancetnic import TextClass
 
 text_model = TextClass()
 text_pred = text_model.predict(
-                model_path="model.pth", # Path to saved model
-                text="Sample text to classify" # Text input for prediction
+                model_path="model.pth", # Путь до модели
+                text="Sample text to classify" # Текст для классификации
                 )
 ```
 
-### Combined text and numeric features example
+- ### Класс `TextScalarClass()`
+```Python
+from lancetnic import TextScalarClass
+```
+
+| Атрибут         | Тип       | Допустимые значения | Описание |
+|-----------------|-----------|---------------------|----------|
+| `text_column`  | string   | Название столбца или None | Столбец с текстом (None если только числа) |
+| `data_column`  | list     | Список столбцов | Числовые признаки |
+| `label_column` | string   | Любое валидное название столбца | Целевые метки |
+| `split_ratio`  | float    | (0.01, 0.99) | Доля для валидации |
+| `random_state` | int      | (1, 99) | Random seed (по умолчанию 42) |
+
+### метод `train`
+
+| Параметр       | Тип       | Значения | Описание |
+|----------------|-----------|----------|----------|
+| `model_name`   | class    | LancetMC/LancetMCA | Архитектура модели |
+| `train_path`   | string   | Путь | Путь к обучающим данным (CSV) |
+| `val_path`     | string   | Путь/None | Путь к валидационным данным |
+| `num_epochs`   | int      | ≥1 | Количество эпох |
+| `hidden_size`  | int      | ≥1 | Нейронов в слое (по умолчанию 256) |
+| `num_layers`   | int      | ≥1 | Количество слоёв (по умолчанию 1) |
+| `batch_size`   | int      | ≥1 | Размер батча (по умолчанию 128) |
+| `learning_rate`| float    | (1e-5, 1e-1) | Learning rate (по умолчанию 0.001) |
+| `dropout`      | float    | [0.0, 0.99) | Dropout (по умолчанию 0) |
+| `optim_name`   | string   | Adam/RAdam/SGD/RMSprop/Adadelta | Оптимизатор |
+| `crit_name`    | string   | CELoss | Функция потерь |
+
+### метод `predict`
+
+| Параметр       | Тип       | Значения | Описание |
+|----------------|-----------|----------|----------|
+| `model_path`   | string   | Путь | Путь к модели (.pth) |
+| `text`         | string   | Текст | Текст для классификации |
+| `numeric`      | list     | Числа | Числовые признаки (только TextScalarClass) |
+
+### Пример классификации комбинированных текстовых и числовых элементов
 ```Python
 from lancetnic.models import LancetMC
 from lancetnic import TextScalarClass
 
 mixed_model = TextScalarClass(
-                text_column='description',  # Text column name (None if only numeric)
-                data_column=['feat1', 'feat2'], # List of numeric feature columns
-                label_column='target',     # Target variable column
-                split_ratio=0.2,            # Train/val split ratio
-                random_state=42             # Random seed
+                text_column='description',      # Имя столбца содержащего текст (отсутствует, если в НД только числовые данные)
+                data_column=['feat1', 'feat2'], # Список столбцов содержащих числовые характеристики
+                label_column='target',          # Имя столбца, содержащего метки
+                split_ratio=0.2,                # Соотношение между обучением и валидацией (если val_path отсутствует)
+                random_state=42                 # Случайное начальное значение для воспроизводимости результатов
                 )
 
-mixed_model.train(model_name=LancetMC,   # Model architecture for text classification
-                train_path="train.csv", # Path to training data (CSV format)
-                val_path="val.csv",     # Path to validation data (None for auto-split)
-                num_epochs=50,          # Total training epochs
-                hidden_size=256,        # Size of hidden layers
-                num_layers=1,           # Number of hidden layers
-                batch_size=256,         # Batch size for training
-                learning_rate=0.001,    # Learning rate for optimizer
-                dropout=0,              # Dropout rate (0-1)
-                optim_name='Adam',      # Optimizer ('Adam', 'SGD', 'RAdam', etc.)
-                crit_name='CELoss'      # Loss function ('CELoss' or 'BCELoss')
+mixed_model.train(model_name=LancetMC,  # Имя модели (доступен выбор из библиотеки)
+                train_path="train.csv", # Путь к тренировочным данным (формат CSV)
+                val_path=None,          # Путь к валидационным данным. Может отсутсвовать: None
+                num_epochs=50,          # Количество эпох обучения
+                hidden_size=256,        # Размер скрытого слова (количество нейронов в слое)
+                num_layers=1,           # Количество скрытых слоев
+                batch_size=256,         # Размер пакетов (батчей) для обучения
+                learning_rate=0.001,    # Скорость обучения для оптимизатора
+                dropout=0,              # Процент отключенных нейронов (0-1)
+                optim_name='Adam',      # Оптимизатор ('Adam', 'SGD', 'RAdam', и др.)
+                crit_name='CELoss'      # Функция потерь ('CELoss' и др.)
                 )
 ```
 
-### Making predictions
+### Классификация массива данных
 ```Python
 from lancetnic import TextScalarClass
 
 mixed_model = TextScalarClass()
 mixed_pred = mixed_model.predict(
-                model_path="mixed_model.pth", # Path to saved model
-                text="Product description",  # Text input (None if only numeric)
-                numeric=[0.5, 1.2]            # Numeric features as list
+                model_path="mixed_model.pth",   # Путь до модели
+                text="Product description",     # Текстовые данные (может отсутсвовать None)
+                numeric=[0.5, 1.2]              # Числовые данные в виде списка
                 )
 ```
 
 
-## There are two classes of basic models in LANCETNIC: 
+## Модели для задачи классификации
 
 - LancetMC
 ```Python
@@ -129,16 +211,17 @@ from lancetnic.models import LancetMC
 ```Python
 from lancetnic.models import LancetMC
 ```
+- ScalpelMC
+```Python
+from lancetnic.models import ScalpelMC
+```
 
+ Сравнительная таблица стоковых моделей
 
-| Key Differences Between Models | LancetMC          | LancetMCA                     |
-|--------------------------------|-------------------|-------------------------------|
-| Feature                        |                   |                               |
-| Core Architecture              | Basic LSTM        | LSTM + Attention              |
-| Complexity                     | Lower             | Higher                        |
-| Computational Cost             | Less resource-intensive | More resource-intensive  |
-| Best For                       | Pure text classification | Mixed data or complex patterns |
-| Interpretability               | Standard          | Provides attention weights    |
-| Sequence Handling              | Good              | Excellent for long sequences  |
-
-
+| Характеристика | LancetMC | LancetMCA | ScalpelMC |
+|----------------|----------|-----------|-----------|
+| **Архитектура** | LSTM | LSTM + Attention | Fully Connected Network |
+| **Назначение** | Многоклассовая классификация последовательностей | Многоклассовая классификация с вниманием | Многоклассовая классификация статических данных |
+| **Механизм внимания** | ❌ | ✅ | ❌ |
+| **Обучение** | Медленнее | Самый медленный | Быстрое |
+| **Применение** | Временные ряды | Длинные последовательности, временные ряды | Табличные данные, простейшие признаки |

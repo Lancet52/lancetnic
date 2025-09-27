@@ -1,4 +1,5 @@
 import os
+import yaml
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -34,6 +35,12 @@ class Trainer:
         }
         self.mtx = Metrics()
 
+    def save_hyperparameters(self, hyperparams):
+        path_config = f"{self.new_folder_path}/hyperparams.yaml"
+        with open(path_config, 'w', encoding='utf-8') as f:
+            yaml.dump(hyperparams, f, default_flow_style=False, indent=2)
+        print(f"Гиперпараметры сохранены в: {path_config}/hyperparams.yaml")
+
     def train_epoch(self, epoch, num_epochs):
         self.model.train()
         train_loss, train_correct, train_total = 0.0, 0, 0
@@ -42,7 +49,7 @@ class Trainer:
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             inputs = inputs.float()
 
-            outputs = self.model(inputs.unsqueeze(1))
+            outputs = self.model(inputs)
             loss = self.criterion(outputs, labels)
 
             self.optimizer.zero_grad()
@@ -66,7 +73,7 @@ class Trainer:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 inputs = inputs.float()
 
-                outputs = self.model(inputs.unsqueeze(1))
+                outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
 
                 val_loss += loss.item()
@@ -159,8 +166,27 @@ class Trainer:
 
     
 
-    def train(self, num_epochs, hidden_size, num_layers, input_size, num_classes, train_path, label_column):
+    def train(self, num_epochs, hidden_size, num_layers, input_size, num_classes, train_path, label_column, dropout, batch_size, learning_rate, optim_name, crit_name):
+        hyperparams = {
+                "model_params": {
+                    "input_size": input_size,
+                    "hidden_size": hidden_size,
+                    "num_layers": num_layers,
+                    "num_classes": num_classes,
+                    "dropout": dropout
+                },
+
+                "train_params": {
+                    "num_epochs": num_epochs,
+                    "batch_size": batch_size,
+                    "learning_rate": learning_rate,
+                    "optimizer": optim_name,
+                    "criterion": crit_name
+                }
+            }
+        self.save_hyperparameters(hyperparams=hyperparams)
         for epoch in range(num_epochs):
+            
             # Фаза обучения
             train_loss, train_correct, train_total = self.train_epoch(epoch, num_epochs)
             

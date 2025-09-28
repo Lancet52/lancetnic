@@ -614,7 +614,7 @@ class TextScalarClass:
             X_text = self.checkpoint['vectorizer_text'].transform([self.text]).toarray()
             X_data=self.checkpoint['vectorizer_scalar'].transform([self.numeric])
             X = np.hstack([X_text, X_data])
-        X = torch.tensor(X, dtype=torch.float32).unsqueeze(1)
+        X = torch.tensor(X, dtype=torch.float32)
 
         with torch.no_grad():
             self.pred = torch.argmax(self.model(X), dim=1).item()

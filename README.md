@@ -55,4 +55,4 @@ pip install lancetnic
 
 - [Lancet52](https://github.com/Lancet52)
 
-## 📄 [Документация](./lancetnic/docs/RU_documentation.md)
+## 📄 [Документация](https://github.com/Lancet52/lancetnic/blob/main/lancetnic/docs/images/RU_documentation.md)

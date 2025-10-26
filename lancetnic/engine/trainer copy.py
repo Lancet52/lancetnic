@@ -10,7 +10,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 from lancetnic.utils import Metrics, dir
 from lancetnic.engine import Trainer, RegressionTrainer
-from lancetnic.engine.vectorizer import vectorize_text, vectorize_data, vectorize_data_val, vectorize_text_val
+from lancetnic.engine.vectorizer import vectorize_text, vectorize_data
 
 
 # Датасет для классификиции
@@ -99,35 +99,101 @@ class Classification:
         elif optim_name=='Adadelta':
             optimizer = optim.Adadelta(params=params, lr=lr)
             return optimizer
-    
-    # ВЕКТОРИЗАЦИЯ (как я заебался этот модуль писать...)
-    # Векторизация с отдельным валидационным набором данных
+        
+    # Векторизация с отдельным валидационным набором данных (как я заебался этот модуль писать....)
     def vectorize_with_val_path(self):
         # Чтение валидационного датасета
         self.df_val = pd.read_csv(self.val_path)
         
         # Векторизация только числовых данных, при отсутствии текстовых
-        if self.text_column is None and self.data_column is not None:         
-            self.X_train, self.X_val, self.vectorizer_scalar = vectorize_data_val(data_column=self.data_column,
-                                                                                  df_train=self.df_train,
-                                                                                  df_val=self.df_val)        
+        if self.text_column is None and self.data_column is not None:            
+            if isinstance(self.data_column, str):
+                self.data_column = [self.data_column]
+            
+            self.vectorizer_scalar = []
+            self.data_encoder_list_train = []
+            self.data_encoder_list_val = []
+            
+            for data_col in self.data_column:
+                vectorizer_data = StandardScaler()                
+                # Обработка train данных
+                data_encoder_train = vectorizer_data.fit_transform(self.df_train[data_col].fillna(0).values.reshape(-1, 1))
+                # Обработка val данных
+                data_encoder_val = vectorizer_data.transform(self.df_val[data_col].fillna(0).values.reshape(-1, 1))
+                
+                self.data_encoder_list_train.append(data_encoder_train)
+                self.data_encoder_list_val.append(data_encoder_val)
+                self.vectorizer_scalar.append(vectorizer_data)
+            
+            self.X_train = np.hstack(self.data_encoder_list_train)
+            self.X_val = np.hstack(self.data_encoder_list_val)
+        
         # Векторизация только текстовых данных, при отсутсвии числовых
-        elif self.data_column is None and self.text_column is not None:          
-            self.X_train, self.X_val, self.vectorizer_text = vectorize_text_val(text_column=self.text_column,
-                                                                                df_train=self.df_train,
-                                                                                df_val=self.df_val,
-                                                                                max_features=self.max_features)
+        elif self.data_column is None and self.text_column is not None:
+            if isinstance(self.text_column, str):
+                self.text_column = [self.text_column]
+            
+            self.vectorizer_text = []
+            self.text_encoder_list_train = []
+            self.text_encoder_list_val = []
+            
+            for text_col in self.text_column:
+                vectorizer_text = TfidfVectorizer(max_features=self.max_features)
+                
+                # Обработка train данных
+                text_encoder_train = vectorizer_text.fit_transform(self.df_train[text_col].fillna('').astype(str)).toarray()
+                # Обработка val данных
+                text_encoder_val = vectorizer_text.transform(self.df_val[text_col].fillna('').astype(str)).toarray()
+                
+                self.text_encoder_list_train.append(text_encoder_train)
+                self.text_encoder_list_val.append(text_encoder_val)
+                self.vectorizer_text.append(vectorizer_text)
+            
+            self.X_train = np.hstack(self.text_encoder_list_train)
+            self.X_val = np.hstack(self.text_encoder_list_val)
 
         # Векторизация комбинированных (текстовых и числовых) данных     
         elif self.text_column is not None and self.data_column is not None:
-            text_features_train, text_features_val, self.vectorizer_text = vectorize_text_val(text_column=self.text_column,
-                                                                                              df_train=self.df_train,
-                                                                                              df_val=self.df_val,
-                                                                                              max_features=self.max_features)
+            if isinstance(self.text_column, str):
+                self.text_column = [self.text_column]
+            if isinstance(self.data_column, str):
+                self.data_column = [self.data_column]
             
-            data_features_train, data_features_val, self.vectorizer_scalar = vectorize_data_val(data_column=self.data_column,
-                                                                                                df_train=self.df_train,
-                                                                                                df_val=self.df_val)
+            # Векторизация текстовых данных
+            self.vectorizer_text = []
+            self.text_encoder_list_train = []
+            self.text_encoder_list_val = []
+            
+            for text_col in self.text_column:
+                vectorizer_text = TfidfVectorizer(max_features=self.max_features)
+                
+                text_encoder_train = vectorizer_text.fit_transform(self.df_train[text_col].fillna('').astype(str)).toarray()
+                text_encoder_val = vectorizer_text.transform(self.df_val[text_col].fillna('').astype(str)).toarray()
+                
+                self.text_encoder_list_train.append(text_encoder_train)
+                self.text_encoder_list_val.append(text_encoder_val)
+                self.vectorizer_text.append(vectorizer_text)
+            
+            # Векторизация числовых данных
+            self.vectorizer_scalar = []
+            self.data_encoder_list_train = []
+            self.data_encoder_list_val = []
+            
+            for data_col in self.data_column:
+                vectorizer_data = StandardScaler()
+                
+                data_encoder_train = vectorizer_data.fit_transform(self.df_train[data_col].fillna(0).values.reshape(-1, 1))
+                data_encoder_val = vectorizer_data.transform(self.df_val[data_col].fillna(0).values.reshape(-1, 1))
+                
+                self.data_encoder_list_train.append(data_encoder_train)
+                self.data_encoder_list_val.append(data_encoder_val)
+                self.vectorizer_scalar.append(vectorizer_data)
+            
+            # Объединение текстовых и числовых данных
+            text_features_train = np.hstack(self.text_encoder_list_train)
+            text_features_val = np.hstack(self.text_encoder_list_val)
+            data_features_train = np.hstack(self.data_encoder_list_train)
+            data_features_val = np.hstack(self.data_encoder_list_val)
             
             self.X_train = np.hstack([text_features_train, data_features_train])
             self.X_val = np.hstack([text_features_val, data_features_val])
@@ -154,14 +220,12 @@ class Classification:
             
         elif self.data_column is None and self.text_column is not None:
             X_all, self.vectorizer_text = vectorize_text(text_column=self.text_column,
-                                                                     df_train=self.df_train,
-                                                                     max_features=self.max_features)
+                                                                     df_train=self.df_train)
             
         elif self.text_column is not None and self.data_column is not None:               
             # Векторизация текста            
             self.text_encoder, self.vectorizer_text = vectorize_text(text_column=self.text_column, 
-                                                                     df_train=self.df_train,
-                                                                     max_features=self.max_features)
+                                                                     df_train=self.df_train)
             # Векторизация числовых признаков
             self.scalar_encoder, self.vectorizer_scalar = vectorize_data(data_column=self.data_column,
                                                                          df_train=self.df_train)
@@ -186,12 +250,11 @@ class Classification:
 
         return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.num_classes
     
-    # Обучение
     def train(self, model_name, train_path, val_path, num_epochs, hidden_size=256, num_layers=1, batch_size=128, learning_rate=0.001, dropout=0, optim_name='Adam', crit_name='CELoss'):
         """Обучение модели с заданными параметрами и наборами данных.
 
         Args:
-            model_name (type): Ссылка на класс модели (например, LancetMC, LancetMCA, LancetMC_gru, ScalpelMC), экземпляр которой будет создан для обучения.
+            model_name (type): Ссылка на класс модели (например, LancetMC, LancetMCA, ScalpelMC), экземпляр которой будет создан для обучения.
             train_path (str): Путь к файлу/каталогу обучающих данных.
             val_path (str): путь к файлу/каталогу проверочных данных.
             num_epochs (int): Количество эпох.
@@ -319,63 +382,32 @@ class Classification:
                                 label_column=self.label_column,
                                 save_folder_path=self.new_folder_path
                                 )
-    def predict(self, model_path, text_data, scalar_data):
+    def predict(self, model_path, text, numeric):
         """Инференс модели
 
         Args:
             model_path (str): Путь до модели
-            text_date (list): Текстовые данные
-            scalar_date (list): Числовые данные
+            text (str): Текстовые данные
+            numeric (list): Числовые данные
         """
-
-        self.model_path = f"{model_path}"
-        self.text_data = text_data
-        self.scalar_data = scalar_data
-        
-        # Загружаем на CPU
+        self.model_path=f"{model_path}"
+        self.text=text
+        self.numeric=numeric
+        # Загружаем на CPU. Так как векторизация в базовом трейне была через библиотеку sklearn, то только CPU!!!
         self.checkpoint = torch.load(self.model_path, map_location='cpu', weights_only=False)  
         self.model = self.checkpoint['model'] 
-        self.model.eval()
+        self.model.eval()  
 
-        # Только массив числовых данных
-        if self.text_data is None and self.scalar_data is not None:
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X = np.hstack(scalar_features)
         
-        # Только массив текстовых данных
-        elif self.scalar_data is None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    # Каждый векторизатор применяется к своему текстовому столбцу
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X = np.hstack(text_features)
+        if self.text==None:
+            X=self.checkpoint['vectorizer_scalar'].transform([self.numeric])
+        else:
 
-        # Комбинированный набор данных (Текст + числа)
-        elif self.scalar_data is not None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X_text = np.hstack(text_features)
-
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X_data = np.hstack(scalar_features)
-
+            X_text = self.checkpoint['vectorizer_text'].transform([self.text]).toarray()
+            X_data=self.checkpoint['vectorizer_scalar'].transform([self.numeric])
             X = np.hstack([X_text, X_data])
-
-        # Преобразуем в тензор
         X = torch.tensor(X, dtype=torch.float32)
+
         with torch.no_grad():
             self.pred = torch.argmax(self.model(X), dim=1).item()
             self.class_name = self.checkpoint['label_encoder'].inverse_transform([self.pred])[0]
@@ -384,17 +416,14 @@ class Classification:
 
 
 class Regression:
-    def __init__(self, text_column=None, data_column=None, label_column=None, split_ratio=0.2, random_state=42, max_features=None):
-        self.text_column = text_column
+    def __init__(self, data_column=None, label_column=None, split_ratio=0.2, random_state=42):
         self.data_column = data_column
         self.label_column = label_column
         self.split_ratio = split_ratio
         self.random_state = random_state
-        self.max_features = max_features
         
         self.df_train = None
         self.df_val = None
-        self.vectorizer_text = None
         self.vectorizer_scalar = None
         self.X_train = None
         self.X_val = None
@@ -443,84 +472,18 @@ class Regression:
             optimizer = optim.Adadelta(params=params, lr=lr)
             return optimizer
         
-    # Векторизация с отдельным валидационным набором данных
-    def vectorize_with_val_path(self):
-        # Чтение валидационного датасета
-        self.df_val = pd.read_csv(self.val_path)
-        
-        # Векторизация только числовых данных, при отсутствии текстовых
-        if self.text_column is None and self.data_column is not None:         
-            self.X_train, self.X_val, self.vectorizer_scalar = vectorize_data_val(data_column=self.data_column,
-                                                                                  df_train=self.df_train,
-                                                                                  df_val=self.df_val)        
-        # Векторизация только текстовых данных, при отсутсвии числовых
-        elif self.data_column is None and self.text_column is not None:          
-            self.X_train, self.X_val, self.vectorizer_text = vectorize_text_val(text_column=self.text_column,
-                                                                                df_train=self.df_train,
-                                                                                df_val=self.df_val,
-                                                                                max_features=self.max_features)
-
-        # Векторизация комбинированных (текстовых и числовых) данных     
-        elif self.text_column is not None and self.data_column is not None:
-            text_features_train, text_features_val, self.vectorizer_text = vectorize_text_val(text_column=self.text_column,
-                                                                                              df_train=self.df_train,
-                                                                                              df_val=self.df_val,
-                                                                                              max_features=self.max_features)
-            
-            data_features_train, data_features_val, self.vectorizer_scalar = vectorize_data_val(data_column=self.data_column,
-                                                                                                df_train=self.df_train,
-                                                                                                df_val=self.df_val)
-            
-            self.X_train = np.hstack([text_features_train, data_features_train])
-            self.X_val = np.hstack([text_features_val, data_features_val])
-        else:
-            raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
-        
-        # Кодирование меток        
-        # Значения напрямую (ТОЛЬКО ДЛЯ РЕГРЕССИИ!!)
-        self.y_train = self.df_train[self.label_column].values
-        self.y_val = self.df_val[self.label_column].values
-        
-        self.input_size = self.X_train.shape[1]
-        self.output_size = 1
-        
-        return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.output_size
-    
     # Векторизация без отдельного набора данных
-    def vectorize_no_val_path(self): 
+    def vectorize_no_val_path(self):
+        self.vectorizer_scalar = StandardScaler()
+        X_all = self.vectorizer_scalar.fit_transform(self.df_train[self.data_column].values)            
 
-        if self.text_column is None and self.data_column is not None:
-            # Векторизация числовых признаков
-            X_all, self.vectorizer_scalar = vectorize_data(data_column=self.data_column, 
-                                                                       df_train=self.df_train)
-            
-        elif self.data_column is None and self.text_column is not None:
-            X_all, self.vectorizer_text = vectorize_text(text_column=self.text_column,
-                                                                     df_train=self.df_train,
-                                                                     max_features=self.max_features)
-            
-        elif self.text_column is not None and self.data_column is not None:               
-            # Векторизация текста            
-            self.text_encoder, self.vectorizer_text = vectorize_text(text_column=self.text_column, 
-                                                                     df_train=self.df_train,
-                                                                     max_features=self.max_features)
-            # Векторизация числовых признаков
-            self.scalar_encoder, self.vectorizer_scalar = vectorize_data(data_column=self.data_column,
-                                                                         df_train=self.df_train)
-            # Объединение тикера и числовых признаков
-            X_all = np.hstack([self.text_encoder, self.scalar_encoder])
-        
-        else:
-            raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
-
-        # Кодирование меток
         # Значения напрямую (ТОЛЬКО ДЛЯ РЕГРЕССИИ!!)
-        y_all = self.df_train[self.label_column].values        
+        y_all = self.df_train[self.label_column].values
 
         # Разделение данных на обучающую и валидационную выборку
-        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(X_all,
-                                                                              y_all,
-                                                                              test_size=self.split_ratio,
+        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(X_all, 
+                                                                              y_all, 
+                                                                              test_size=self.split_ratio, 
                                                                               random_state=self.random_state)
 
         self.input_size = self.X_train.shape[1]
@@ -528,22 +491,28 @@ class Regression:
 
         return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.output_size
 
-    def train(self, model_name, train_path, val_path, num_epochs, hidden_size=256, num_layers=1, batch_size=128, learning_rate=0.001, dropout=0, optim_name='Adam', crit_name='MSELoss'):
-        """Обучение модели с заданными параметрами и наборами данных.
+    # Векторизация с отдельным валидационным набором данных
+    def vectorize_with_val_path(self):
+        self.df_val = pd.read_csv(self.val_path)
+        
+        # Масштабирование признаков
+        self.vectorizer_scalar = StandardScaler()
+        self.X_train = self.vectorizer_scalar.fit_transform(
+            self.df_train[self.data_column].values)
+        self.X_val = self.vectorizer_scalar.transform(
+            self.df_val[self.data_column].values)
 
-        Args:
-            model_name (type): Ссылка на класс модели (например, LancetReg, ScalpelReg), экземпляр которой будет создан для обучения.
-            train_path (str): Путь к файлу/каталогу обучающих данных.
-            val_path (str): путь к файлу/каталогу проверочных данных.
-            num_epochs (int): Количество эпох.
-            hidden_size (int): количество нейронов в скрытых слоях. По умолчанию используется значение 256.
-            num_layers (int): Количество скрытых слоев в модели. Значение по умолчанию равно 1.
-            batch_size (int): количество выборок при обновлении градиента. Значение по умолчанию равно 128.
-            learning_rate (float): размер шага на каждом шаге оптимизации. Значение по умолчанию равно 0,001.
-            dropout (float): Коэффициент отсева для регуляризации (от 0 до 1).Значение по умолчанию равно 0.
-            optim_name (str): Оптимизатор ('Adam', 'RAdam', 'SGD', 'RMSProp', 'Adadelta' и т.д.). По умолчанию используется 'Adam'.
-            crit_name (str): Функция потерь ('MSELoss'). По умолчанию используется значение 'MSELoss'.
-        """
+        # Целевые переменные
+        self.y_train = self.df_train[self.label_column].values
+        self.y_val = self.df_val[self.label_column].values
+
+        self.input_size = self.X_train.shape[1]
+        self.output_size = 1
+
+        return self.X_train, self.X_val, self.y_train, self.y_val, self.input_size, self.output_size
+
+    def train(self, model_name, train_path, val_path, num_epochs, hidden_size=256, num_layers=1, batch_size=128, learning_rate=0.001, dropout=0, optim_name='Adam', crit_name='MSELoss'):
+        """Обучение модели регрессии с заданными параметрами"""
         
         # Загрузка и предобработка данных
         self.model_name = model_name
@@ -619,7 +588,6 @@ class Regression:
                                     device=device,
                                     train_loader=train_loader,
                                     val_loader=val_loader,
-                                    vectorizer_text=self.vectorizer_text,
                                     vectorizer_scalar=self.vectorizer_scalar,
                                     new_folder_path=self.new_folder_path
                                     )
@@ -663,56 +631,23 @@ class Regression:
         # График распределения предсказаний vs реальных значений
         self.mtx.regression_scatter(metrics=metrics,
                                    save_folder_path=self.new_folder_path)
-        
-    def predict(self, model_path, text_data, scalar_data):
+
+    def predict(self, model_path, numeric):
+        """Инференс модели регрессии"""
         self.model_path = f"{model_path}"
-        self.text_data = text_data
-        self.scalar_data = scalar_data
+        self.numeric = numeric
         
         # Загружаем на CPU
-        self.checkpoint = torch.load(self.model_path, map_location='cpu', weights_only=False)  
+        self.checkpoint = torch.load(f=self.model_path,
+                                     map_location='cpu',
+                                     weights_only=False
+                                     )  
         self.model = self.checkpoint['model'] 
-        self.model.eval()
+        self.model.eval()  
 
-        # Только массив числовых данных
-        if self.text_data is None and self.scalar_data is not None:
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X = np.hstack(scalar_features)
-        
-        # Только массив текстовых данных
-        elif self.scalar_data is None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    # Каждый векторизатор применяется к своему текстовому столбцу
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X = np.hstack(text_features)
-
-        # Комбинированный набор данных (Текст + числа)
-        elif self.scalar_data is not None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X_text = np.hstack(text_features)
-
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X_data = np.hstack(scalar_features)
-
-            X = np.hstack([X_text, X_data])
-
-        # Преобразуем в тензор
+        X = self.checkpoint['vectorizer_scalar'].transform([self.numeric])
         X = torch.tensor(X, dtype=torch.float32)
+
         with torch.no_grad():
             self.pred = self.model(X).item()
 

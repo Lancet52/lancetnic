@@ -1,4 +1,5 @@
-from lancetnic.engine.trainer import TextClass, TextScalarClass
+from lancetnic.engine.trainer import Classification, Regression
 
 
-__all__ = ["TextClass", "TextScalarClass"]
+__all__ = ["Classification",
+           "Regression"]

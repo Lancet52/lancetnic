@@ -319,69 +319,78 @@ class Classification:
                                 label_column=self.label_column,
                                 save_folder_path=self.new_folder_path
                                 )
-    def predict(self, model_path, text_data, scalar_data):
-        """Инференс модели
+    def predict(self, model_path, text_data=None, scalar_data=None):
+        """
+        Предсказание.
 
         Args:
-            model_path (str): Путь до модели
-            text_date (list): Текстовые данные
-            scalar_date (list): Числовые данные
+            model_path (str): путь к .pt файлу
+            text_data (str или list): если одна текстовая колонка (можно передать просто строку)
+            scalar_data (list или число): если одна числовая колонка (можно передать просто число)
+
+        Returns:
+            str: название предсказанного класса
         """
+        if text_data is None and scalar_data is None:
+            raise ValueError("Должен быть передан хотя бы один из: text_data или scalar_data")
 
-        self.model_path = f"{model_path}"
-        self.text_data = text_data
-        self.scalar_data = scalar_data
-        
-        # Загружаем на CPU
-        self.checkpoint = torch.load(self.model_path, map_location='cpu', weights_only=False)  
-        self.model = self.checkpoint['model'] 
-        self.model.eval()
+        # Загружаем модель и метаданные
+        checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+        model = checkpoint['model']
+        model.eval()
+        label_encoder = checkpoint['label_encoder']
 
-        # Только массив числовых данных
-        if self.text_data is None and self.scalar_data is not None:
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X = np.hstack(scalar_features)
-        
-        # Только массив текстовых данных
-        elif self.scalar_data is None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    # Каждый векторизатор применяется к своему текстовому столбцу
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X = np.hstack(text_features)
+        # Нормализуем векторайзеры
+        vec_text = checkpoint.get('vectorizer_text') or []
+        vec_scalar = checkpoint.get('vectorizer_scalar') or []
 
-        # Комбинированный набор данных (Текст + числа)
-        elif self.scalar_data is not None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X_text = np.hstack(text_features)
+        if not isinstance(vec_text, (list, tuple)):
+            vec_text = [vec_text] if vec_text is not None else []
+        if not isinstance(vec_scalar, (list, tuple)):
+            vec_scalar = [vec_scalar] if vec_scalar is not None else []
 
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X_data = np.hstack(scalar_features)
+        # Оборачиваем строку или число в список, если колонка всего одна
+        if text_data is not None and len(vec_text) == 1:
+            if isinstance(text_data, str):
+                text_data = [text_data]
+            elif not isinstance(text_data, (list, tuple)):
+                text_data = [str(text_data)]
 
-            X = np.hstack([X_text, X_data])
+        if scalar_data is not None and len(vec_scalar) == 1:
+            if not isinstance(scalar_data, (list, tuple)):
+                scalar_data = [scalar_data]
 
-        # Преобразуем в тензор
+        # Проверки
+        if text_data is not None and len(text_data) != len(vec_text):
+            raise ValueError(f"Ожидалось {len(vec_text)} текстовых колонок, "
+                            f"получено {len(text_data)} значений")
+
+        if scalar_data is not None and len(scalar_data) != len(vec_scalar):
+            raise ValueError(f"Ожидалось {len(vec_scalar)} числовых колонок, "
+                            f"получено {len(scalar_data)} значений")
+
+        features = []
+
+        # Текстовые данные
+        if text_data is not None:
+            for val, vectorizer in zip(text_data, vec_text):
+                feat = vectorizer.transform([val]).toarray()
+                features.append(feat)
+
+        # Числовые 
+        if scalar_data is not None:
+            for val, vectorizer in zip(scalar_data, vec_scalar):
+                feat = vectorizer.transform([[val]])
+                features.append(feat)
+
+        X = np.hstack(features)
         X = torch.tensor(X, dtype=torch.float32)
+
         with torch.no_grad():
-            self.pred = torch.argmax(self.model(X), dim=1).item()
-            self.class_name = self.checkpoint['label_encoder'].inverse_transform([self.pred])[0]
+            pred_idx = torch.argmax(model(X), dim=1).item()
+            predicted_class = label_encoder.inverse_transform([pred_idx])[0]
 
-        return self.class_name
-
+        return predicted_class
 
 class Regression:
     def __init__(self, text_column=None, data_column=None, label_column=None, split_ratio=0.2, random_state=42, max_features=None):
@@ -664,56 +673,73 @@ class Regression:
         self.mtx.regression_scatter(metrics=metrics,
                                    save_folder_path=self.new_folder_path)
         
-    def predict(self, model_path, text_data, scalar_data):
-        self.model_path = f"{model_path}"
-        self.text_data = text_data
-        self.scalar_data = scalar_data
-        
-        # Загружаем на CPU
-        self.checkpoint = torch.load(self.model_path, map_location='cpu', weights_only=False)  
-        self.model = self.checkpoint['model'] 
-        self.model.eval()
+    def predict(self, model_path, text_data=None, scalar_data=None):
+        """
+        Предсказание для регрессии.
 
-        # Только массив числовых данных
-        if self.text_data is None and self.scalar_data is not None:
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X = np.hstack(scalar_features)
-        
-        # Только массив текстовых данных
-        elif self.scalar_data is None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    # Каждый векторизатор применяется к своему текстовому столбцу
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X = np.hstack(text_features)
+        Args:
+            model_path (str): путь к .pt файлу
+            text_data (str или list): если одна текстовая колонка (можно передать просто строку)
+            scalar_data (list или число): если одна числовая колонка (можно передать просто число)
 
-        # Комбинированный набор данных (Текст + числа)
-        elif self.scalar_data is not None and self.text_data is not None:
-            text_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_text']):
-                if i < len(self.text_data):
-                    feature = vectorizer.transform([self.text_data[i]]).toarray()
-                    text_features.append(feature)                
-            X_text = np.hstack(text_features)
+        Returns:
+            float: предсказанное значение
+        """
+        if text_data is None and scalar_data is None:
+            raise ValueError("Должен быть передан хотя бы один из: text_data или scalar_data")
 
-            scalar_features = []
-            for i, vectorizer in enumerate(self.checkpoint['vectorizer_scalar']):
-                if i < len(self.scalar_data):
-                    feature = vectorizer.transform([[self.scalar_data[i]]])
-                    scalar_features.append(feature)
-            X_data = np.hstack(scalar_features)
+        # Загружаем модель и метаданные
+        checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+        model = checkpoint['model']
+        model.eval()
 
-            X = np.hstack([X_text, X_data])
+        # Нормализуем векторайзеры
+        vec_text = checkpoint.get('vectorizer_text') or []
+        vec_scalar = checkpoint.get('vectorizer_scalar') or []
 
-        # Преобразуем в тензор
+        if not isinstance(vec_text, (list, tuple)):
+            vec_text = [vec_text] if vec_text is not None else []
+        if not isinstance(vec_scalar, (list, tuple)):
+            vec_scalar = [vec_scalar] if vec_scalar is not None else []
+
+        # Оборачиваем строку или число в список, если колонка всего одна
+        if text_data is not None and len(vec_text) == 1:
+            if isinstance(text_data, str):
+                text_data = [text_data]
+            elif not isinstance(text_data, (list, tuple)):
+                text_data = [str(text_data)]
+
+        if scalar_data is not None and len(vec_scalar) == 1:
+            if not isinstance(scalar_data, (list, tuple)):
+                scalar_data = [scalar_data]
+
+        # Проверки
+        if text_data is not None and len(text_data) != len(vec_text):
+            raise ValueError(f"Ожидалось {len(vec_text)} текстовых колонок, "
+                            f"получено {len(text_data)} значений")
+
+        if scalar_data is not None and len(scalar_data) != len(vec_scalar):
+            raise ValueError(f"Ожидалось {len(vec_scalar)} числовых колонок, "
+                            f"получено {len(scalar_data)} значений")
+
+        features = []
+
+        # Текстовые данные
+        if text_data is not None:
+            for val, vectorizer in zip(text_data, vec_text):
+                feat = vectorizer.transform([val]).toarray()
+                features.append(feat)
+
+        # Числовые 
+        if scalar_data is not None:
+            for val, vectorizer in zip(scalar_data, vec_scalar):
+                feat = vectorizer.transform([[val]])
+                features.append(feat)
+
+        X = np.hstack(features)
         X = torch.tensor(X, dtype=torch.float32)
-        with torch.no_grad():
-            self.pred = self.model(X).item()
 
-        return self.pred
+        with torch.no_grad():
+            prediction = model(X).item()
+
+        return prediction

@@ -78,6 +78,28 @@ class Metrics:
         plt.savefig(f"{self.save_folder_path}/f1_score.png")
         plt.close()
 
+    def train_val_precision(self, epoch, val_precision, save_folder_path):
+        plt.figure(figsize=self.figsize)
+        plt.plot(epoch, val_precision, label='Validation Precision', color='orange')
+        plt.xlabel('Epoch')
+        plt.ylabel('Precision')
+        plt.title('Validation Precision')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{save_folder_path}/val_precision.png")
+        plt.close()
+
+    def train_val_recall(self, epoch, val_recall, save_folder_path):
+        plt.figure(figsize=self.figsize)
+        plt.plot(epoch, val_recall, label='Validation Recall', color='green')
+        plt.xlabel('Epoch')
+        plt.ylabel('Recall')
+        plt.title('Validation Recall')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{save_folder_path}/val_recall.png")
+        plt.close()
+
     def dataset_counts(self, data_path, label_column, save_folder_path):
         self.data_path = data_path
         self.save_folder_path = save_folder_path

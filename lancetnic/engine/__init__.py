@@ -1,4 +1,4 @@
-from lancetnic.engine.base_trainer import Trainer, RegressionTrainer
+from lancetnic.engine.trainers import ClassificationTrainer, RegressionTrainer
 
-__all__=["Trainer",
+__all__=["ClassificationTrainer",
          "RegressionTrainer"]

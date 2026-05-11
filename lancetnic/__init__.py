@@ -1,4 +1,4 @@
-from lancetnic.engine.trainer import Classification, Regression
+from lancetnic.engine.pipelines import Classification, Regression
 
 
 __all__ = ["Classification",

@@ -150,6 +150,8 @@ from lancetnic.models import ScalpelMC
 │ ├── 🖼️ f1_score.png # Метрика F1 score
 │ ├── 🖼️ train_val_acc.png # График train/val accuracy
 │ ├── 🖼️ train_val_loss.png # График train/val loss
+│ ├── 🖼️ val_precision.png # График val precision
+│ ├── 🖼️ val_recall.png # График val recall
 │ ├── ⚙️ hyperparams.yaml
 ├── 📁 train_1/
 ...

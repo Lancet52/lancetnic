@@ -1,7 +1,7 @@
 import os
 
 # Создание папки для сохранения результатов обучения
-def dir():
+def dirruns():
     base_dir = os.getcwd()
     base_dir_runs = os.path.join(base_dir, "runs")
     if not os.path.exists(base_dir_runs):

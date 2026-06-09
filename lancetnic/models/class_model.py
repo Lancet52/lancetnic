@@ -16,7 +16,6 @@ class LancetMC(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        # Проверяем количество измерений у вектора. Для LSTM должно быть = 3!
         if x.dim() == 2:
             x=x.unsqueeze(1)
         
@@ -43,7 +42,7 @@ class LancetMCA(nn.Module):
         self.fc = nn.Linear(self.hidden_size, num_classes)
 
     def forward(self, x):
-        # Проверяем количество измерений у вектора. Для LSTM должно быть = 3!
+        #Проверка количества измерений у вектора. Для LSTM должно быть = 3!!!!!
         if x.dim() == 2:
             x=x.unsqueeze(1)
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)

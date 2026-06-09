@@ -9,8 +9,8 @@ from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
-from lancetnic.utils import Metrics, dir
-from lancetnic.engine import ClassificationTrainer, RegressionTrainer
+from lancetnic.utils import Metrics, dirruns
+from lancetnic.engine import ClassificationTrainer, RegressionTrainer, MultiTaskTrainer
 from lancetnic.engine.vectorizer import vectorize_text, vectorize_data, vectorize_data_val, vectorize_text_val
 
 
@@ -39,7 +39,18 @@ class RegressionDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
     
-
+# Датасет для Мульти Задачи
+class MultiTaskDataset(Dataset):
+    def __init__(self, X, y_class, y_reg):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y_class = torch.tensor(y_class, dtype=torch.long)
+        self.y_reg = torch.tensor(y_reg, dtype=torch.float32).view(-1, 1)
+        
+    def __len__(self):
+        return len(self.X)
+    
+    def __getitem__(self, idx):
+        return self.X[idx], self.y_class[idx], self.y_reg[idx]
     
 #-------Фабрики------------------------------------------------------------------
 # Оптимизаторы
@@ -246,7 +257,7 @@ class Classification:
                 return
 
         # Настройка обучения
-        self.new_folder_path = dir()
+        self.new_folder_path = dirruns()
 
         # Создание файла для результатов
         headers = ["epoch",
@@ -593,7 +604,7 @@ class Regression:
                 return
 
         # Настройка обучения
-        self.new_folder_path = dir()
+        self.new_folder_path = dirruns()
 
         # Создание файла для результатов
         headers = ["epoch",
@@ -627,14 +638,7 @@ class Regression:
         criterion = REG_CRITERIA.get(self.crit_name, nn.MSELoss)()
         optimizer = OPTIMIZERS.get(self.optim_name, optim.Adam)(self.model.parameters(), lr=learning_rate)
         device = DEVICES.get(self.device_name, torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
-        
-        criterion = self.crit(crit_name=self.crit_name)
-        
-        optimizer = self.optimaze(optim_name=self.optim_name,
-                                  params=self.model.parameters(),
-                                  lr=learning_rate)
-        # Инициализация GPU (CPU)
-        device = self.change_device(device_name=self.device_name)
+
         self.model.to(device)
         print(f"Используется устройство: {device}")
         
@@ -760,3 +764,369 @@ class Regression:
             prediction = model(X).item()
 
         return prediction
+
+class MultiTask:
+    def __init__(self,
+                 text_column=None,
+                 data_column=None,
+                 label_class=None,
+                 label_reg=None,
+                 split_ratio=0.2,
+                 random_state=42,
+                 max_features=None):
+        self.text_column = text_column
+        self.data_column = data_column
+        self.label_class = label_class
+        self.label_reg = label_reg
+        self.split_ratio = split_ratio
+        self.random_state = random_state
+        self.max_features = max_features
+        
+        self.df_train = None
+        self.df_val = None
+        self.vectorizer_text = None
+        self.vectorizer_scalar = None
+        self.label_encoder = None
+        self.scaler_reg = None
+        
+        self.X_train = None
+        self.X_val = None
+        self.y_class_train = None
+        self.y_class_val = None
+        self.y_reg_train = None
+        self.y_reg_val = None
+        
+        self.input_size = None
+        self.num_classes = None
+        
+        self.model = None
+        self.device = None
+        self.train_loader = None
+        self.val_loader = None
+        self.metrics = None
+        self.new_folder_path = None
+        self.csv_path = None
+        self.mtx = Metrics()
+
+    def _get_column_name(self, col):
+        """Вспомогательный метод для получения имени колонки (строка или первый элемент списка)"""
+        return col[0] if isinstance(col, list) else col
+
+    def vectorize_with_val_path(self):
+        """Векторизация с отдельным валидационным набором данных"""
+        self.df_val = pd.read_csv(self.val_path)
+        
+        cls_col = self._get_column_name(self.label_class)
+        reg_col = self._get_column_name(self.label_reg)
+
+        # Векторизация признаков
+        if self.text_column is not None and self.data_column is not None:
+            txt_tr, txt_val, self.vectorizer_text = vectorize_text_val(
+                self.text_column, self.df_train, self.df_val, self.max_features
+            )
+            dat_tr, dat_val, self.vectorizer_scalar = vectorize_data_val(
+                self.data_column, self.df_train, self.df_val
+            )
+            self.X_train = np.hstack([txt_tr, dat_tr])
+            self.X_val = np.hstack([txt_val, dat_val])
+            
+        elif self.text_column is not None:
+            self.X_train, self.X_val, self.vectorizer_text = vectorize_text_val(
+                self.text_column, self.df_train, self.df_val, self.max_features
+            )
+            
+        elif self.data_column is not None:
+            self.X_train, self.X_val, self.vectorizer_scalar = vectorize_data_val(
+                self.data_column, self.df_train, self.df_val
+            )
+        else:
+            raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
+
+        # Кодирование меток классификации
+        self.label_encoder = LabelEncoder()
+        self.y_class_train = self.label_encoder.fit_transform(self.df_train[cls_col])
+        self.y_class_val = self.label_encoder.transform(self.df_val[cls_col])
+
+        # Нормализация регрессионной цели
+        self.scaler_reg = StandardScaler()
+        self.y_reg_train = self.scaler_reg.fit_transform(self.df_train[reg_col].values.reshape(-1, 1)).flatten()
+        self.y_reg_val = self.scaler_reg.transform(self.df_val[reg_col].values.reshape(-1, 1)).flatten()
+
+        self.input_size = self.X_train.shape[1]
+        self.num_classes = len(self.label_encoder.classes_)
+
+    def vectorize_no_val_path(self):
+        """Векторизация без отдельного набора данных (с разбиением через train_test_split)"""
+        cls_col = self._get_column_name(self.label_class)
+        reg_col = self._get_column_name(self.label_reg)
+
+        # Векторизация признаков
+        if self.text_column is not None and self.data_column is not None:
+            txt_all, self.vectorizer_text = vectorize_text(self.text_column, self.df_train, self.max_features)
+            dat_all, self.vectorizer_scalar = vectorize_data(self.data_column, self.df_train)
+            X_all = np.hstack([txt_all, dat_all])
+            
+        elif self.text_column is not None:
+            X_all, self.vectorizer_text = vectorize_text(self.text_column, self.df_train, self.max_features)
+            
+        elif self.data_column is not None:
+            X_all, self.vectorizer_scalar = vectorize_data(self.data_column, self.df_train)
+        else:
+            raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
+
+        # Кодирование меток классификации
+        self.label_encoder = LabelEncoder()
+        y_class_all = self.label_encoder.fit_transform(self.df_train[cls_col])
+
+        # Нормализация регрессионной цели
+        self.scaler_reg = StandardScaler()
+        y_reg_all = self.scaler_reg.fit_transform(self.df_train[reg_col].values.reshape(-1, 1)).flatten()
+
+        # Разделение данных на обучающую и валидационную выборки
+        self.X_train, self.X_val, self.y_class_train, self.y_class_val, self.y_reg_train, self.y_reg_val = train_test_split(
+            X_all, y_class_all, y_reg_all, 
+            test_size=self.split_ratio, 
+            random_state=self.random_state
+        )
+
+        self.input_size = self.X_train.shape[1]
+        self.num_classes = len(self.label_encoder.classes_)
+
+    def train(self,
+              model_name,
+              train_path,
+              val_path,
+              num_epochs,
+              hidden_size=256,
+              num_layers=1,
+              batch_size=128,
+              learning_rate=0.001,
+              dropout=0,
+              optim_name='Adam',
+              device_name='cuda',
+              loss_ratio_cls=1.0,
+              loss_ratio_reg=1.0):
+        
+        self.train_path = train_path
+        self.val_path = val_path
+        self.df_train = pd.read_csv(self.train_path)
+
+        # Инициализация метрик и векторизация
+        if val_path is None:
+            try:
+                self.vectorize_no_val_path()
+            except Exception as e:
+                print(e)
+                return
+        else:
+            try:
+                self.vectorize_with_val_path()
+            except Exception as e:
+                print(e)
+                print("Insert true val_path")
+                return
+
+        # Настройка обучения
+        self.new_folder_path = dirruns()
+
+        # Создание файла для результатов
+        headers = ["epoch",
+                   "train_loss",
+                   "val_loss",
+                   "val_acc",
+                   "f1_score",
+                   "val_mae",
+                   "val_rmse"]
+        
+        self.csv_path = f"{self.new_folder_path}/result.csv"
+        if not os.path.isfile(self.csv_path):
+            pd.DataFrame(columns=headers).to_csv(self.csv_path, index=False)
+            
+        # Создание DataLoader
+        train_dataset = MultiTaskDataset(self.X_train, self.y_class_train, self.y_reg_train)
+        val_dataset = MultiTaskDataset(self.X_val, self.y_class_val, self.y_reg_val)
+        
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        
+        # Модель, оптимизатор и функции потерь
+        self.model = model_name(self.input_size, hidden_size, num_layers, self.num_classes, dropout)
+        crit_class = nn.CrossEntropyLoss() 
+        crit_reg = nn.MSELoss()
+        optimizer = getattr(torch.optim, optim_name, optim.Adam)(self.model.parameters(), lr=learning_rate)
+        device = torch.device('cuda' if torch.cuda.is_available() and device_name == 'cuda' else 'cpu')
+        self.model.to(device)
+        print(f"Используется устройство: {device}")
+
+        # Создание и запуск тренера
+        trainer = MultiTaskTrainer(
+            model=self.model,
+            criterion_class=crit_class,
+            criterion_reg=crit_reg,
+            optimizer=optimizer,
+            device=device,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            label_encoder=self.label_encoder,
+            vectorizer_text=self.vectorizer_text,
+            vectorizer_scalar=self.vectorizer_scalar,
+            new_folder_path=self.new_folder_path,
+            loss_ratio_cls=loss_ratio_cls,
+            loss_ratio_reg=loss_ratio_reg,
+            scaler_reg=self.scaler_reg
+        )
+        
+        # Сбор всех метрик
+        metrics = trainer.train(
+            num_epochs=num_epochs,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            input_size=self.input_size,
+            num_classes=self.num_classes,
+            train_path=train_path,
+            label_column=self.label_class,
+            dropout=dropout,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            optim_name=optim_name,
+            crit_name="CELoss + MSELoss"
+        )
+        
+        self.visualize_metrics(metrics)
+        print("Обучение завершено!")
+        print(f"Лучшая модель сохранена в '{self.new_folder_path}/best_model.pt' с val loss: {trainer.best_val_loss:.4f}")
+        print(f"Последняя модель сохранена в '{self.new_folder_path}/last_model.pt'")
+
+    def visualize_metrics(self, metrics):
+        """Визуализация метрик мультизадачной модели"""
+        self.mtx.confus_matrix(
+            last_labels=metrics['all_labels'][-1],
+            last_preds=metrics['all_preds'][-1],
+            label_encoder=self.label_encoder.classes_,
+            save_folder_path=self.new_folder_path,
+            plt_name="confusion_matrix"
+        )
+        
+        self.mtx.train_val_loss(
+            epoch=metrics['epoch'],
+            train_loss=metrics['train_loss'],
+            val_loss=metrics['val_loss'],
+            save_folder_path=self.new_folder_path
+        )
+        
+        self.mtx.train_val_acc(
+            epoch=metrics['epoch'],
+            train_acc=metrics['train_acc'],
+            val_acc=metrics['val_acc'],
+            save_folder_path=self.new_folder_path
+        )
+        
+        self.mtx.f1score(
+            epoch=metrics['epoch'],
+            f1_score=metrics['f1_score'],
+            save_folder_path=self.new_folder_path
+        )
+        
+        self.mtx.train_val_mae(
+            epoch=metrics['epoch'],
+            train_mae=metrics['train_mae'],
+            val_mae=metrics['val_mae'],
+            save_folder_path=self.new_folder_path
+        )
+        
+        self.mtx.train_val_rmse(
+            epoch=metrics['epoch'],
+            train_rmse=metrics['train_rmse'],
+            val_rmse=metrics['val_rmse'],
+            save_folder_path=self.new_folder_path
+        )
+        
+        self.mtx.regression_scatter(
+            metrics=metrics,
+            save_folder_path=self.new_folder_path
+        )
+
+    def predict(self, model_path, text_data=None, scalar_data=None):
+        """
+        Предсказание для мультимодели (классификация + регрессия).
+
+        Args:
+            model_path (str): путь к .pt файлу с сохранённой моделью
+            text_data (str или list): текстовые признаки (если одна колонка, можно передать строку)
+            scalar_data (list или число): числовые признаки (если одна колонка, можно передать число)
+
+        Returns:
+            tuple: (предсказанный класс: str, предсказанное значение: float)
+        """
+        if text_data is None and scalar_data is None:
+            raise ValueError("Должен быть передан хотя бы один из: text_data или scalar_data")
+
+        # Загружаем модель и метаданные
+        checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+        model = checkpoint['model']
+        model.eval()
+        label_encoder = checkpoint['label_encoder'] 
+        scaler_reg = checkpoint.get('scaler_reg')
+
+        # Нормализация векторайзеров
+        vec_text = checkpoint.get('vectorizer_text') or []
+        vec_scalar = checkpoint.get('vectorizer_scalar') or []
+
+        if not isinstance(vec_text, (list, tuple)):
+            vec_text = [vec_text] if vec_text is not None else []
+        if not isinstance(vec_scalar, (list, tuple)):
+            vec_scalar = [vec_scalar] if vec_scalar is not None else []
+
+        # Оборачиваем строку или число в список, если колонка всего одна
+        if text_data is not None and len(vec_text) == 1:
+            if isinstance(text_data, str):
+                text_data = [text_data]
+            elif not isinstance(text_data, (list, tuple)):
+                text_data = [str(text_data)]
+
+        if scalar_data is not None and len(vec_scalar) == 1:
+            if not isinstance(scalar_data, (list, tuple)):
+                scalar_data = [scalar_data]
+
+        # Проверки
+        if text_data is not None and len(text_data) != len(vec_text):
+            raise ValueError(f"Ожидалось {len(vec_text)} текстовых колонок, получено {len(text_data)} значений")
+
+        if scalar_data is not None and len(scalar_data) != len(vec_scalar):
+            raise ValueError(f"Ожидалось {len(vec_scalar)} числовых колонок, получено {len(scalar_data)} значений")
+
+        features = []
+
+        # Текстовые данные
+        if text_data is not None:
+            for val, vectorizer in zip(text_data, vec_text):
+                feat = vectorizer.transform([val]).toarray()
+                features.append(feat)
+
+        # Числовые данные
+        if scalar_data is not None:
+            for val, vectorizer in zip(scalar_data, vec_scalar):
+                feat = vectorizer.transform([[val]])
+                features.append(feat)
+
+        # Объединение признаков
+        X = np.hstack(features)
+        X = torch.tensor(X, dtype=torch.float32)
+
+        # Инференс 
+        with torch.no_grad():
+            class_logits, reg_output = model(X)
+            
+            pred_idx = torch.argmax(class_logits, dim=1).item()
+            predicted_class = label_encoder.inverse_transform([pred_idx])[0]
+            
+            # Получение сырого (нормализованного) предсказания регрессии
+            predicted_value_normalized = reg_output.item()
+            
+            # Обратное преобразование, если скалер был сохранен
+            if scaler_reg is not None:
+                predicted_value = scaler_reg.inverse_transform([[predicted_value_normalized]])[0][0]
+            else:
+                predicted_value = predicted_value_normalized
+
+        return predicted_class, float(predicted_value)

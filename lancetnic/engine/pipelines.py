@@ -39,7 +39,7 @@ class RegressionDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
     
-# Датасет для Мульти Задачи
+# Датасет для мультизадачи
 class MultiTaskDataset(Dataset):
     def __init__(self, X, y_class, y_reg):
         self.X = torch.tensor(X, dtype=torch.float32)
@@ -903,6 +903,8 @@ class MultiTask:
               learning_rate=0.001,
               dropout=0,
               optim_name='Adam',
+              crit_cls_name='CELoss',
+              crit_reg_name='MSELoss',
               device_name='cuda',
               loss_ratio_cls=1.0,
               loss_ratio_reg=1.0):
@@ -951,100 +953,79 @@ class MultiTask:
         
         # Модель, оптимизатор и функции потерь
         self.model = model_name(self.input_size, hidden_size, num_layers, self.num_classes, dropout)
-        crit_class = nn.CrossEntropyLoss() 
-        crit_reg = nn.MSELoss()
-        optimizer = getattr(torch.optim, optim_name, optim.Adam)(self.model.parameters(), lr=learning_rate)
-        device = torch.device('cuda' if torch.cuda.is_available() and device_name == 'cuda' else 'cpu')
+        crit_class = CLASS_CRITERIA.get(crit_cls_name, nn.CrossEntropyLoss)()
+        crit_reg = REG_CRITERIA.get(crit_reg_name, nn.MSELoss)()
+        optimizer = OPTIMIZERS.get(optim_name, optim.Adam)(self.model.parameters(), lr=learning_rate)
+        device = DEVICES.get(device_name, torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         self.model.to(device)
         print(f"Используется устройство: {device}")
 
         # Создание и запуск тренера
-        trainer = MultiTaskTrainer(
-            model=self.model,
-            criterion_class=crit_class,
-            criterion_reg=crit_reg,
-            optimizer=optimizer,
-            device=device,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            label_encoder=self.label_encoder,
-            vectorizer_text=self.vectorizer_text,
-            vectorizer_scalar=self.vectorizer_scalar,
-            new_folder_path=self.new_folder_path,
-            loss_ratio_cls=loss_ratio_cls,
-            loss_ratio_reg=loss_ratio_reg,
-            scaler_reg=self.scaler_reg
-        )
+        trainer = MultiTaskTrainer(model=self.model,
+                                   criterion_class=crit_class,
+                                   criterion_reg=crit_reg,
+                                   optimizer=optimizer,
+                                   device=device,
+                                   train_loader=train_loader,
+                                   val_loader=val_loader,
+                                   label_encoder=self.label_encoder,
+                                   vectorizer_text=self.vectorizer_text,
+                                   vectorizer_scalar=self.vectorizer_scalar,
+                                   new_folder_path=self.new_folder_path,
+                                   loss_ratio_cls=loss_ratio_cls,
+                                   loss_ratio_reg=loss_ratio_reg,
+                                   scaler_reg=self.scaler_reg)
         
         # Сбор всех метрик
-        metrics = trainer.train(
-            num_epochs=num_epochs,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            input_size=self.input_size,
-            num_classes=self.num_classes,
-            train_path=train_path,
-            label_column=self.label_class,
-            dropout=dropout,
-            batch_size=batch_size,
-            learning_rate=learning_rate,
-            optim_name=optim_name,
-            crit_name="CELoss + MSELoss"
-        )
+        metrics = trainer.train(num_epochs=num_epochs,
+                                hidden_size=hidden_size,
+                                num_layers=num_layers,
+                                input_size=self.input_size,
+                                num_classes=self.num_classes,
+                                train_path=train_path,
+                                label_column=self.label_class,
+                                dropout=dropout,
+                                batch_size=batch_size,
+                                learning_rate=learning_rate,
+                                optim_name=optim_name,
+                                crit_name="CELoss + MSELoss")
         
         self.visualize_metrics(metrics)
-        print("Обучение завершено!")
-        print(f"Лучшая модель сохранена в '{self.new_folder_path}/best_model.pt' с val loss: {trainer.best_val_loss:.4f}")
-        print(f"Последняя модель сохранена в '{self.new_folder_path}/last_model.pt'")
 
     def visualize_metrics(self, metrics):
         """Визуализация метрик мультизадачной модели"""
-        self.mtx.confus_matrix(
-            last_labels=metrics['all_labels'][-1],
-            last_preds=metrics['all_preds'][-1],
-            label_encoder=self.label_encoder.classes_,
-            save_folder_path=self.new_folder_path,
-            plt_name="confusion_matrix"
-        )
+        self.mtx.confus_matrix(last_labels=metrics['all_labels'][-1],
+                               last_preds=metrics['all_preds'][-1],
+                               label_encoder=self.label_encoder.classes_,
+                               save_folder_path=self.new_folder_path,
+                               plt_name="confusion_matrix_last_model")
         
-        self.mtx.train_val_loss(
-            epoch=metrics['epoch'],
-            train_loss=metrics['train_loss'],
-            val_loss=metrics['val_loss'],
-            save_folder_path=self.new_folder_path
-        )
+        self.mtx.train_val_loss(epoch=metrics['epoch'],
+                                train_loss=metrics['train_loss'],
+                                val_loss=metrics['val_loss'],
+                                save_folder_path=self.new_folder_path)
         
-        self.mtx.train_val_acc(
-            epoch=metrics['epoch'],
-            train_acc=metrics['train_acc'],
-            val_acc=metrics['val_acc'],
-            save_folder_path=self.new_folder_path
-        )
+        self.mtx.train_val_acc(epoch=metrics['epoch'],
+                               train_acc=metrics['train_acc'],
+                               val_acc=metrics['val_acc'],
+                               save_folder_path=self.new_folder_path)
         
-        self.mtx.f1score(
-            epoch=metrics['epoch'],
-            f1_score=metrics['f1_score'],
-            save_folder_path=self.new_folder_path
-        )
+        self.mtx.f1score(epoch=metrics['epoch'],
+                         f1_score=metrics['f1_score'],
+                         save_folder_path=self.new_folder_path)
         
-        self.mtx.train_val_mae(
-            epoch=metrics['epoch'],
-            train_mae=metrics['train_mae'],
-            val_mae=metrics['val_mae'],
-            save_folder_path=self.new_folder_path
-        )
+        self.mtx.train_val_mae(epoch=metrics['epoch'],
+                               train_mae=metrics['train_mae'],
+                               val_mae=metrics['val_mae'],
+                               save_folder_path=self.new_folder_path)
         
-        self.mtx.train_val_rmse(
-            epoch=metrics['epoch'],
-            train_rmse=metrics['train_rmse'],
-            val_rmse=metrics['val_rmse'],
-            save_folder_path=self.new_folder_path
-        )
-        
-        self.mtx.regression_scatter(
-            metrics=metrics,
-            save_folder_path=self.new_folder_path
-        )
+        self.mtx.train_val_rmse(epoch=metrics['epoch'],
+                                train_rmse=metrics['train_rmse'],
+                                val_rmse=metrics['val_rmse'],
+                                save_folder_path=self.new_folder_path)
+                
+        self.mtx.regression_scatter(metrics=metrics,
+                                    save_folder_path=self.new_folder_path)
 
     def predict(self, model_path, text_data=None, scalar_data=None):
         """

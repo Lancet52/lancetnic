@@ -501,6 +501,8 @@ class MultiTaskTrainer:
                         'all_labels': [],
                         'all_val_preds': [],
                         'all_val_labels': []}
+        
+        self.mtx=Metrics()
 
     def save_hyperparameters(self, hyperparams):
         path_config = f"{self.new_folder_path}\\hyperparams.yaml"
@@ -600,6 +602,12 @@ class MultiTaskTrainer:
     def save_model(self, epoch, val_loss_epoch, hidden_size, num_layers, input_size, num_classes):
         if val_loss_epoch < self.best_val_loss:
             self.best_val_loss = val_loss_epoch
+            self.mtx.confus_matrix(last_labels=self.metrics['all_labels'][-1],
+                                   last_preds=self.metrics['all_preds'][-1],
+                                   label_encoder=self.label_encoder.classes_,
+                                   save_folder_path=self.new_folder_path,
+                                   plt_name="confusion_matrix_best_model"
+                                   )
             torch.save({
                 'model': self.model, 
                 'label_encoder': self.label_encoder,

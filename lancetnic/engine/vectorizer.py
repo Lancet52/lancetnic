@@ -12,12 +12,10 @@ def vectorize_text(text_column, df_train, max_features):
     vectorizers = []
     for text_col in text_column:
         vectorizer_text = TfidfVectorizer(max_features=max_features)
-        # text_encoder = vectorizer_text.fit_transform(df_train[text_col].fillna('')).toarray()
         text_encoder = vectorizer_text.fit_transform(df_train[text_col].fillna(''))           
         text_encoder_list.append(text_encoder)
         vectorizers.append(vectorizer_text)
 
-    # combined_text = np.hstack(text_encoder_list)
     combined_text = sp.hstack(text_encoder_list).tocsr() 
     return combined_text, vectorizers
 
@@ -35,10 +33,8 @@ def vectorize_text_val(text_column, df_train, df_val, max_features):
         vectorizer_textdata = TfidfVectorizer(max_features=max_features)
                 
         # Обработка train данных
-        # text_encoder_train = vectorizer_textdata.fit_transform(df_train[text_col].fillna('').astype(str)).toarray()
         text_encoder_train = vectorizer_textdata.fit_transform(df_train[text_col].fillna('').astype(str))
         # Обработка val данных
-        # text_encoder_val = vectorizer_textdata.transform(df_val[text_col].fillna('').astype(str)).toarray()
         text_encoder_val = vectorizer_textdata.transform(df_val[text_col].fillna('').astype(str))
                 
         text_encoder_list_train.append(text_encoder_train)

@@ -1,4 +1,4 @@
-# LANCETNIC 4.0.0
+# LANCETNIC 4.1.0
 
 [![PyPI Package Version](https://img.shields.io/pypi/v/lancetnic.svg?style=flat-square)](https://pypi.org/project/lancetnic/)
 [![PyPi status](https://img.shields.io/pypi/status/lancetnic.svg?style=flat-square)](https://pypi.python.org/pypi/lancetnic)
@@ -16,7 +16,7 @@
 <img src="lancetnic/docs/images/classreg.png" alt="Классификация" width="500">
 </div>
 
-### Библиотека поддерживает два фундаментальных класса задач машинного обучения:
+### Библиотека поддерживает несколько классов задач машинного обучения:
 
 #### 1. Задача классификации
 Состоит в предсказании категориальной метки (класса) для объекта.

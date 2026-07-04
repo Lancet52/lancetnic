@@ -18,40 +18,61 @@ from lancetnic.engine.vectorizer import vectorize_text, vectorize_data, vectoriz
 # Датасет для калассификации
 class ClassifierDataset(Dataset):
     def __init__(self, X, y):
-        self.X = torch.tensor(X, dtype=torch.float32)
+        self.is_sparse = sparse.issparse(X)
+        self.X = X
+        if not self.is_sparse:
+            self.X = torch.tensor(X, dtype=torch.float32)
         self.y = torch.tensor(y, dtype=torch.long)
 
     def __len__(self):
-        return len(self.X)
+        return self.X.shape[0]
 
     def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+        if self.is_sparse:
+            x = torch.tensor(self.X[idx].toarray(), dtype=torch.float32).squeeze(0)
+        else:
+            x = self.X[idx]
+        return x, self.y[idx]
 
 # Датасет для регрессии
 class RegressionDataset(Dataset):
     def __init__(self, X, y):
-        self.X = torch.tensor(X, dtype=torch.float32)
+        self.is_sparse = sparse.issparse(X)
+        self.X = X
+        if not self.is_sparse:
+            self.X = torch.tensor(X, dtype=torch.float32)
         self.y = torch.tensor(y, dtype=torch.float32).view(-1, 1)
 
     def __len__(self):
-        return len(self.X)
+        return self.X.shape[0]
 
     def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-    
+        if self.is_sparse:
+            x = torch.tensor(self.X[idx].toarray(), dtype=torch.float32).squeeze(0)
+        else:
+            x = self.X[idx]
+        return x, self.y[idx]
+        
 # Датасет для мультизадачи
 class MultiTaskDataset(Dataset):
     def __init__(self, X, y_class, y_reg):
-        self.X = torch.tensor(X, dtype=torch.float32)
+        self.is_sparse = sparse.issparse(X)
+        self.X = X
+        if not self.is_sparse:
+            self.X = torch.tensor(X, dtype=torch.float32)
         self.y_class = torch.tensor(y_class, dtype=torch.long)
         self.y_reg = torch.tensor(y_reg, dtype=torch.float32).view(-1, 1)
-        
+
     def __len__(self):
-        return len(self.X)
-    
+        return self.X.shape[0]
+
     def __getitem__(self, idx):
-        return self.X[idx], self.y_class[idx], self.y_reg[idx]
-    
+        if self.is_sparse:
+            x = torch.tensor(self.X[idx].toarray(), dtype=torch.float32).squeeze(0)
+        else:
+            x = self.X[idx]
+        return x, self.y_class[idx], self.y_reg[idx]
+        
 #-------Фабрики------------------------------------------------------------------
 # Оптимизаторы
 OPTIMIZERS = {'Adam': optim.Adam,
@@ -143,8 +164,10 @@ class Classification:
                                                                                                 df_train=self.df_train,
                                                                                                 df_val=self.df_val)
             
-            self.X_train = sparse.hstack([text_features_train, data_features_train]).toarray().astype(np.float32)
-            self.X_val = sparse.hstack([text_features_val, data_features_val]).toarray().astype(np.float32)
+            data_features_train_sp = sparse.csr_matrix(data_features_train)
+            data_features_val_sp = sparse.csr_matrix(data_features_val)
+            self.X_train = sparse.hstack([text_features_train, data_features_train_sp]).tocsr()
+            self.X_val = sparse.hstack([text_features_val, data_features_val_sp]).tocsr()
         else:
             raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
         
@@ -179,8 +202,11 @@ class Classification:
             # Векторизация числовых признаков
             self.scalar_encoder, self.vectorizer_scalar = vectorize_data(data_column=self.data_column,
                                                                          df_train=self.df_train)
+            
+            self.scalar_encoder_sp = sparse.csr_matrix(self.scalar_encoder)
+
             # Объединение тикера и числовых признаков
-            X_all = sparse.hstack([self.text_encoder, self.scalar_encoder]).toarray().astype(np.float32)
+            X_all = sparse.hstack([self.text_encoder, self.scalar_encoder_sp]).tocsr()
         
         else:
             raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
@@ -490,8 +516,11 @@ class Regression:
                                                                                                 df_train=self.df_train,
                                                                                                 df_val=self.df_val)
             
-            self.X_train = np.hstack([text_features_train, data_features_train])
-            self.X_val = np.hstack([text_features_val, data_features_val])
+            data_features_train_sp = sparse.csr_matrix(data_features_train)
+            data_features_val_sp = sparse.csr_matrix(data_features_val)
+            self.X_train = sparse.hstack([text_features_train, data_features_train_sp]).tocsr()
+            self.X_val = sparse.hstack([text_features_val, data_features_val_sp]).tocsr()
+            
         else:
             raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
         
@@ -526,8 +555,10 @@ class Regression:
             # Векторизация числовых признаков
             self.scalar_encoder, self.vectorizer_scalar = vectorize_data(data_column=self.data_column,
                                                                          df_train=self.df_train)
+            
+            self.scalar_encoder_sp = sparse.csr_matrix(self.scalar_encoder)
             # Объединение тикера и числовых признаков
-            X_all = np.hstack([self.text_encoder, self.scalar_encoder])
+            X_all = sparse.hstack([self.text_encoder, self.scalar_encoder_sp]).tocsr()
         
         else:
             raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
@@ -821,24 +852,31 @@ class MultiTask:
 
         # Векторизация признаков
         if self.text_column is not None and self.data_column is not None:
-            txt_tr, txt_val, self.vectorizer_text = vectorize_text_val(
-                self.text_column, self.df_train, self.df_val, self.max_features
-            )
-            dat_tr, dat_val, self.vectorizer_scalar = vectorize_data_val(
-                self.data_column, self.df_train, self.df_val
-            )
-            self.X_train = np.hstack([txt_tr, dat_tr])
-            self.X_val = np.hstack([txt_val, dat_val])
+            txt_tr, txt_val, self.vectorizer_text = vectorize_text_val(text_column=self.text_column,
+                                                                       df_train=self.df_train,
+                                                                       df_val=self.df_val,
+                                                                       max_features=self.max_features)
+            
+            dat_tr, dat_val, self.vectorizer_scalar = vectorize_data_val(data_column=self.data_column,
+                                                                         df_train=self.df_train,
+                                                                         df_val=self.df_val)
+            
+            dat_tr_sp = sparse.csr_matrix(dat_tr)
+            dat_val_sp = sparse.csr_matrix(dat_val)
+            self.X_train = sparse.hstack([txt_tr, dat_tr_sp]).tocsr()
+            self.X_val = sparse.hstack([txt_val, dat_val_sp]).tocsr()
+            
             
         elif self.text_column is not None:
-            self.X_train, self.X_val, self.vectorizer_text = vectorize_text_val(
-                self.text_column, self.df_train, self.df_val, self.max_features
-            )
+            self.X_train, self.X_val, self.vectorizer_text = vectorize_text_val(text_column=self.text_column,
+                                                                                df_train=self.df_train,
+                                                                                df_val=self.df_val,
+                                                                                max_features=self.max_features)
             
         elif self.data_column is not None:
-            self.X_train, self.X_val, self.vectorizer_scalar = vectorize_data_val(
-                self.data_column, self.df_train, self.df_val
-            )
+            self.X_train, self.X_val, self.vectorizer_scalar = vectorize_data_val(data_column=self.data_column,
+                                                                                  df_train=self.df_train,
+                                                                                  df_val=self.df_val)
         else:
             raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
 
@@ -856,21 +894,30 @@ class MultiTask:
         self.num_classes = len(self.label_encoder.classes_)
 
     def vectorize_no_val_path(self):
-        """Векторизация без отдельного набора данных (с разбиением через train_test_split)"""
+        """Векторизация без отдельного набора данных"""
         cls_col = self._get_column_name(self.label_class)
         reg_col = self._get_column_name(self.label_reg)
 
         # Векторизация признаков
         if self.text_column is not None and self.data_column is not None:
-            txt_all, self.vectorizer_text = vectorize_text(self.text_column, self.df_train, self.max_features)
-            dat_all, self.vectorizer_scalar = vectorize_data(self.data_column, self.df_train)
-            X_all = np.hstack([txt_all, dat_all])
+            txt_all, self.vectorizer_text = vectorize_text(text_column=self.text_column,
+                                                           df_train=self.df_train,
+                                                           max_features=self.max_features)
+                                                           
+            dat_all, self.vectorizer_scalar = vectorize_data(data_column=self.data_column,
+                                                             df_train=self.df_train)
+            
+            dat_all_sp = sparse.csr_matrix(dat_all)
+            X_all = sparse.hstack([txt_all, dat_all_sp]).tocsr()
             
         elif self.text_column is not None:
-            X_all, self.vectorizer_text = vectorize_text(self.text_column, self.df_train, self.max_features)
+            X_all, self.vectorizer_text = vectorize_text(text_column=self.text_column,
+                                                         df_train=self.df_train,
+                                                         max_features=self.max_features)
             
         elif self.data_column is not None:
-            X_all, self.vectorizer_scalar = vectorize_data(self.data_column, self.df_train)
+            X_all, self.vectorizer_scalar = vectorize_data(data_column=self.data_column,
+                                                           df_train=self.df_train)
         else:
             raise ValueError("Должен быть указан хотя бы один из параметров: text_column или data_column")
 
@@ -883,11 +930,7 @@ class MultiTask:
         y_reg_all = self.scaler_reg.fit_transform(self.df_train[reg_col].values.reshape(-1, 1)).flatten()
 
         # Разделение данных на обучающую и валидационную выборки
-        self.X_train, self.X_val, self.y_class_train, self.y_class_val, self.y_reg_train, self.y_reg_val = train_test_split(
-            X_all, y_class_all, y_reg_all, 
-            test_size=self.split_ratio, 
-            random_state=self.random_state
-        )
+        self.X_train, self.X_val, self.y_class_train, self.y_class_val, self.y_reg_train, self.y_reg_val = train_test_split(X_all, y_class_all, y_reg_all, test_size=self.split_ratio, random_state=self.random_state)
 
         self.input_size = self.X_train.shape[1]
         self.num_classes = len(self.label_encoder.classes_)

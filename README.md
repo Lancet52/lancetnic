@@ -11,6 +11,12 @@
 
 Официальный сайт: https://lancetnic.ru/
 
+Канал в телеграм:
+https://t.me/markovstate
+
+Канал в МАХ:
+https://max.ru/channel_lancetnic
+
 <div align="center">
 
 ## Решаемые задачи

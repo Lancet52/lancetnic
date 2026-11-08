@@ -1,6 +1,6 @@
-from lancetnic.engine.pipelines import Classification, Regression, MultiTask
-
+from lancetnic.engine.pipelines import Classification, Regression, MultiTask, MultiLabel
 
 __all__ = ["Classification",
            "Regression",
-           "MultiTask"]
+           "MultiTask",
+           "MultiLabel"]

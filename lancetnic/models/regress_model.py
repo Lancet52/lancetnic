@@ -33,26 +33,24 @@ class ScalpelReg(nn.Module):
         return out
 
 # Модель для регрессии с LSTM
+# Модель для регрессии с LSTM
 class LancetReg(nn.Module):
-    """Модель для регрессии с LSTM слоем"""
+    """Модель для регрессии с LSTM-слоем"""
 
-    def __init__(self, input_size, hidden_size, num_layers, output_size, dropout):
-        super(LancetReg, self).__init__()
+    def __init__(self, input_size: int, hidden_size: int, num_layers: int,
+                 output_size: int, dropout: float) -> None:
+        super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.dropout = dropout
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=self.dropout)
-        self.fc = nn.Linear(self.hidden_size, output_size)
+        lstm_dropout = dropout if num_layers > 1 else 0.0
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers,
+                            batch_first=True, dropout=lstm_dropout)
         self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden_size, output_size)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.dim() == 2:
             x = x.unsqueeze(1)
-        
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        out, _ = self.lstm(x, (h0, c0))
-        out = self.dropout(out)
-        out = out[:, -1, :]
-        out = self.fc(out)
-        return out
+        out, _ = self.lstm(x)
+        out = self.dropout(out[:, -1, :])
+        return self.fc(out)

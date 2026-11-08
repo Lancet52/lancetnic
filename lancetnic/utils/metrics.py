@@ -197,3 +197,103 @@ class Metrics:
         plt.savefig(f"{self.save_folder_path}/regression_scatter.png", dpi=300, bbox_inches='tight')
         plt.close()
         print(f"Метрики регрессии - MAE: {mae:.3f}, RMSE: {rmse:.3f}, R²: {r2:.3f}")
+
+    
+    # Мультилейбл метрики:
+    def multi_label_confusion_matrix(self, last_labels, last_probs, label_binarizer, save_folder_path, plt_name="multi_label_confusion", threshold=0.5):
+        y_true = np.array(last_labels)
+        y_pred = (np.array(last_probs) >= threshold).astype(int)
+        n_classes = y_true.shape[1]
+        classes = label_binarizer.classes_
+        conf = np.zeros((n_classes, n_classes), dtype=int)
+        for i in range(n_classes):
+            for j in range(n_classes):
+                conf[i, j] = int(((y_true[:, i] == 1) & (y_pred[:, j] == 1)).sum())
+
+        plt.figure(figsize=self.figsize)
+        sns.heatmap(conf, annot=True, fmt='d', cmap=self.cmap, xticklabels=classes, yticklabels=classes)
+        plt.xlabel('Predicted labels')
+        plt.ylabel('True labels')
+        plt.title('Confusion Matrix')
+        plt.tight_layout()
+        plt.savefig(f"{save_folder_path}/{plt_name}.png", dpi=200)
+        plt.close()
+
+
+    def multi_label_subset_acc(self, epoch, train_acc, val_acc, save_folder_path):
+        plt.figure(figsize=self.figsize)
+        plt.plot(epoch, train_acc, label='Train Subset Accuracy')
+        plt.plot(epoch, val_acc, label='Validation Subset Accuracy')
+        plt.xlabel('Epoch')
+        plt.ylabel('Subset Accuracy')
+        plt.title('Training and Validation Subset Accuracy')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{save_folder_path}/multi_label_subset_acc.png")
+        plt.close()
+
+
+    def hamming_loss_plot(self, epoch, hamming_loss, save_folder_path):
+        plt.figure(figsize=self.figsize)
+        plt.plot(epoch, hamming_loss, label='Validation Hamming Loss', color='red')
+        plt.xlabel('Epoch')
+        plt.ylabel('Hamming Loss')
+        plt.title('Validation Hamming Loss (доля ошибочных меток)')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{save_folder_path}/hamming_loss.png")
+        plt.close()
+
+
+    def multi_label_prf_plot(self, epoch, precision, recall, f1, save_folder_path):
+        plt.figure(figsize=self.figsize)
+        plt.plot(epoch, precision, label='Precision (samples)', color='orange')
+        plt.plot(epoch, recall, label='Recall (samples)', color='green')
+        plt.plot(epoch, f1, label='F1 (samples)', color='blue')
+        plt.xlabel('Epoch')
+        plt.ylabel('Score')
+        plt.title('Multi-Label Precision / Recall / F1')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{save_folder_path}/multi_label_prf.png")
+        plt.close()
+
+
+    def per_class_f1(self, last_labels, last_preds, label_binarizer,
+                    save_folder_path):
+        """Столбчатый график F1-score для каждого класса отдельно."""
+        from sklearn.metrics import f1_score
+        y_true = np.array(last_labels)
+        y_pred = np.array(last_preds)
+        classes = label_binarizer.classes_
+        f1_per_class = [f1_score(y_true[:, i], y_pred[:, i], zero_division=0)
+                        for i in range(len(classes))]
+
+        plt.figure(figsize=(max(10, len(classes) * 0.6), 6))
+        bars = plt.bar(classes, f1_per_class, color='steelblue')
+        plt.axhline(np.mean(f1_per_class), color='red', linestyle='--',
+                    label=f'Mean F1 = {np.mean(f1_per_class):.3f}')
+        plt.ylabel('F1-score')
+        plt.title('Per-class F1-score (last epoch)')
+        plt.xticks(rotation=45, ha='right')
+        plt.legend()
+        plt.grid(axis='y', linestyle='--', alpha=0.6)
+        plt.tight_layout()
+        plt.savefig(f"{save_folder_path}/per_class_f1.png", dpi=200)
+        plt.close()
+
+
+    def label_distribution(self, data_path, label_column, label_separator, save_folder_path):
+        df = pd.read_csv(data_path)
+        counts = df[label_column].dropna().apply(lambda x: len([p for p in str(x).split(label_separator) if p.strip()]))
+        dist = counts.value_counts().sort_index()
+
+        plt.figure(figsize=self.figsize)
+        plt.bar(dist.index.astype(str), dist.values, color='teal')
+        plt.xlabel('Number of labels per object')
+        plt.ylabel('Count of objects')
+        plt.title('Distribution of label counts per object')
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(f"{save_folder_path}/label_distribution.png", dpi=200)
+        plt.close()

@@ -24,17 +24,6 @@
 
 <div align="center">
 
-## Решаемые задачи
-
-<p align="center">
-  <img src="lancetnic/docs/images/card_classification.png" alt="Классификация" width="49%">
-  <img src="lancetnic/docs/images/card_multilabel.png" alt="Мультилейбл" width="49%">
-</p>
-<p align="center">
-  <img src="lancetnic/docs/images/card_regression.png" alt="Регрессия" width="49%">
-  <img src="lancetnic/docs/images/card_multitask.png" alt="Мультизадача" width="49%">
-</p>
-
 ### Библиотека поддерживает несколько классов задач машинного обучения:
 
 #### 1. Задача классификации
